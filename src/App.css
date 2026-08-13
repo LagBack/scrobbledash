@@ -63,12 +63,13 @@
 }
 
 .app__welcome-text {
+  position:relative;
   font-size: 56px;
   font-weight: 700;
   letter-spacing: -2px;
   line-height: 1.1;
   color: var(--text-primary);
-  animation: fade-in-up 0.8s ease-out;
+  animation: fade-in-up 1s ease-out;
 }
 
 .app__accent {
