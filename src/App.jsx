@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import CircularGallery from './components/CircularGallery/CircularGallery'
 import DriftWall from './components/DriftWall/DriftWall'
+import SplitText from './components/SplitText/SplitText'
 import { user, recentlyPlayed, topAlbums } from './data/mockData'
 import './App.css'
 
@@ -25,7 +26,19 @@ function App() {
         {/* Welcome heading */}
         <section className="app__welcome">
           <h1 className="app__welcome-text">
-            welcome, <span className="app__accent">{user.name}</span>
+            welcome,             <span className="app__accent">
+              <SplitText
+                text={user.name}
+                delay={80}
+                duration={1.25}
+                ease="power3.out"
+                splitType="chars"
+                from={{ opacity: 0, y: 40 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                rootMargin="-100px"
+              />
+            </span>
           </h1>
           <p className="app__subtitle">Here's what you've been listening to</p>
         </section>

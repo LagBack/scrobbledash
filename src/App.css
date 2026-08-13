@@ -65,6 +65,16 @@
 .app__accent {
   color: var(--accent);
   position: relative;
+  display: inline-block;
+  line-height: 0.9;
+}
+
+/* SplitText character styles */
+.split-char {
+  display: inline-block !important;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 .app__accent::after {
