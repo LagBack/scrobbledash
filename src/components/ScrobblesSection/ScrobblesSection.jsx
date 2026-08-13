@@ -50,14 +50,11 @@ export default function ScrobblesSection({ scrobbles }) {
   const counterStyle = choreoPhase <= 1 ? { opacity: 0 } :
                                { opacity: 1, transition: 'opacity 0.5s ease' };
 
-  // Build digit positions dynamically — no leading zeros.
-  // e.g. scrobbles=90000 → [90000, 0, 0, 0, 0]
+  // Build digit positions dynamically from scrobbles length — no leading zeros.
+  // e.g. scrobbles=90000 → [10000, 1000, 100, 10, 1] (5 places)
   const places = useMemo(() => {
-    const str = String(scrobbles);
-    if (str.length <= 1) return [1];
-    return Array.from({ length: str.length }, (_, i) =>
-      Number(str[i].padEnd(str.length - i, '0'))
-    );
+    const digits = String(scrobbles).length;
+    return Array.from({ length: digits }, (_, i) => Math.pow(10, digits - 1 - i));
   }, [scrobbles]);
 
   return (
