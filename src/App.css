@@ -7,15 +7,34 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* No background — lets the fixed retro canvas show through everywhere */
+  /* Solid background behind content area — canvas shows through where content is transparent */
+  background-color: var(--bg-primary);
+  /* Anchors RetroGrid's `position: absolute` to the page itself. */
+  position: relative;
 }
 
-/* Full-page dark overlay between retro grid and content — visible transition from retro grid to scrobbles darkness */
+/* Scrollable content region */
+.app__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Dark overlay spanning the full page — transitions from transparent (top,
+   over the retro grid) into solid dark by the time the scrobbles section
+   comes into view. Absolute (not fixed) so the transition is tied to actual
+   position on the page instead of always looking the same on screen. */
 .app__page-dark {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(61, 12, 12, 0.3) 35vh, #0a0a0a 70vh);
+  background: linear-gradient(180deg, transparent 0%, rgba(61, 12, 12, 0.3) 25%, #0a0a0a 55%);
   pointer-events: none;
+  z-index: 0;
 }
 
 /* ===== Header ===== */

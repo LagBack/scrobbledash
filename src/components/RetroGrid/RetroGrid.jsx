@@ -11,9 +11,28 @@ export default function RetroGrid({ className = '' }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Use a stable size and ignore small height-only changes so mobile
+    // browsers showing/hiding their address bar during scroll don't
+    // trigger a resize -> the canvas would otherwise recompute and redraw,
+    // which reads as the background "moving" while you scroll.
+    let lastWidth = 0;
+    let lastHeight = 0;
+
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const width = window.innerWidth;
+      const height = window.visualViewport
+        ? window.visualViewport.height
+        : window.innerHeight;
+
+      const widthChanged = width !== lastWidth;
+      const heightChanged = Math.abs(height - lastHeight) > 60;
+
+      if (!widthChanged && !heightChanged && lastWidth !== 0) return;
+
+      lastWidth = width;
+      lastHeight = height;
+      canvas.width = width;
+      canvas.height = height;
     };
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
