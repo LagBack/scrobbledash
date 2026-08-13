@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import MagicRings from '../MagicRings/MagicRings';
 import BlurText from '../BlurText/BlurText';
 import Counter from '../Counter/Counter';
@@ -50,6 +50,16 @@ export default function ScrobblesSection({ scrobbles }) {
   const counterStyle = choreoPhase <= 1 ? { opacity: 0 } :
                                { opacity: 1, transition: 'opacity 0.5s ease' };
 
+  // Build digit positions dynamically — no leading zeros.
+  // e.g. scrobbles=90000 → [90000, 0, 0, 0, 0]
+  const places = useMemo(() => {
+    const str = String(scrobbles);
+    if (str.length <= 1) return [1];
+    return Array.from({ length: str.length }, (_, i) =>
+      Number(str[i].padEnd(str.length - i, '0'))
+    );
+  }, [scrobbles]);
+
   return (
     <section ref={containerRef} className="app__scrobbles">
       {/* Rings: always playing */}
@@ -92,11 +102,12 @@ export default function ScrobblesSection({ scrobbles }) {
           <Counter
             value={counting ? scrobbles : 0}
             fontSize={96}
-            places={[1000000, 100000, 10000, 1000, 100, 10, 1]}
+            places={places}
             textColor="var(--text-primary)"
             fontWeight={900}
             gap={6}
             padding={4}
+            showGradients={false}
           />
         </div>
       </div>

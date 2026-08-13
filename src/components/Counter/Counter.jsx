@@ -82,6 +82,7 @@ export default function Counter({
   containerStyle,
   counterStyle,
   digitStyle,
+  showGradients = true,
   gradientHeight = 16,
   gradientFrom = 'black',
   gradientTo = 'transparent',
@@ -114,13 +115,15 @@ export default function Counter({
           <Digit key={place} place={place} value={value} height={height} digitStyle={digitStyle} />
         ))}
       </span>
-      <span className="gradient-container">
-        <span className="top-gradient" style={topGradientStyle ? topGradientStyle : defaultTopGradientStyle}></span>
-        <span
-          className="bottom-gradient"
-          style={bottomGradientStyle ? bottomGradientStyle : defaultBottomGradientStyle}
-        ></span>
-      </span>
+      {showGradients && (
+        <span className="gradient-container">
+          <span className="top-gradient" style={topGradientStyle ? topGradientStyle : defaultTopGradientStyle}></span>
+          <span
+            className="bottom-gradient"
+            style={bottomGradientStyle ? bottomGradientStyle : defaultBottomGradientStyle}
+          ></span>
+        </span>
+      )}
     </span>
   );
 }
