@@ -3,6 +3,7 @@ import CircularGallery from './components/CircularGallery/CircularGallery'
 import DriftWall from './components/DriftWall/DriftWall'
 import SplitText from './components/SplitText/SplitText'
 import ScrobblesSection from './components/ScrobblesSection/ScrobblesSection'
+import RetroGrid from './components/RetroGrid/RetroGrid'
 import { user, recentlyPlayed, topAlbums, totalScrobbles } from './data/mockData'
 import './App.css'
 
@@ -11,6 +12,12 @@ function App() {
 
   return (
     <div className="app">
+      {/* Retro grid background — fixed, behind all content */}
+      <RetroGrid />
+
+      {/* Full-page dark gradient overlay — transparent at top (shows retro grid), fades into dark for the scrobbles section */}
+      <div className="app__page-dark" />
+
       {/* Header */}
       <header className="app__header">
         <div className="app__logo">
