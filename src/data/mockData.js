@@ -1,3 +1,5 @@
+export const totalScrobbles = 1489752
+
 export const user = {
   name: 'joaopedro',
   avatar: '',

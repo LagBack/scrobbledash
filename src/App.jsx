@@ -2,7 +2,8 @@ import { useState } from 'react'
 import CircularGallery from './components/CircularGallery/CircularGallery'
 import DriftWall from './components/DriftWall/DriftWall'
 import SplitText from './components/SplitText/SplitText'
-import { user, recentlyPlayed, topAlbums } from './data/mockData'
+import ScrobblesSection from './components/ScrobblesSection/ScrobblesSection'
+import { user, recentlyPlayed, topAlbums, totalScrobbles } from './data/mockData'
 import './App.css'
 
 function App() {
@@ -26,7 +27,8 @@ function App() {
         {/* Welcome heading */}
         <section className="app__welcome">
           <h1 className="app__welcome-text">
-            welcome,             <span className="app__accent">
+            welcome,
+            <span className="app__accent">
               <SplitText
                 text={user.name}
                 delay={80}
@@ -80,6 +82,10 @@ function App() {
             />
           </div>
         </section>
+
+        {/* MagicRings → scrobbles choreography */}
+        <ScrobblesSection scrobbles={totalScrobbles} />
+
       </main>
     </div>
   )
