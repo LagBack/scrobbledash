@@ -1,4 +1,4 @@
-export const totalScrobbles = 902
+export const totalScrobbles = 90210
 export const weeklyGenre = "midwest emo"
 
 // Scrobbles per hour (0 = midnight, 23 = 11 PM)

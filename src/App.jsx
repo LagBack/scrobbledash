@@ -66,7 +66,7 @@ function App() {
         {/* Circular gallery — latest tracks */}
         <section className="app__gallery-wrapper">
           <CircularGallery
-            items={recentlyPlayed.map(t => ({ image: t.cover, text: `${t.artist} — ${t.track}` }))}
+            items={recentlyPlayed.map(t => ({ image: t.cover, text: `${t.track}` }))}
             bend={3}
             textColor="#ffffff"
             borderRadius={0.05}
