@@ -8,7 +8,14 @@ import EtherWavesBackground from './components/EtherWaves/EtherWaves'
 import './components/EtherWaves/EtherWaves.css'
 import GenreReveal from './components/GenreReveal/GenreReveal'
 import './components/GenreReveal/GenreReveal.css'
-import { user, recentlyPlayed, topAlbums, totalScrobbles, weeklyGenre } from './data/mockData'
+import Scanner from './components/Scanner/Scanner'
+import './components/Scanner/Scanner.css'
+import './components/Scanner/ScannerSection.css'
+import TimeClock from './components/TimeClock/TimeClock'
+import './components/TimeClock/TimeClock.css'
+import WeekdayChart from './components/WeekdayChart/WeekdayChart'
+import './components/WeekdayChart/WeekdayChart.css'
+import { user, recentlyPlayed, topAlbums, totalScrobbles, weeklyGenre, listeningByHour, listeningByWeekday } from './data/mockData'
 import './App.css'
 
 function App() {
@@ -110,6 +117,46 @@ function App() {
         <div className="ether-waves__fade" />
         <GenreReveal genre={weeklyGenre} />
       </div>
+
+      <section className="scanner-section">
+        <div className="scanner-section__bg">
+          <Scanner
+            color1="#3d0000"
+            color2="#c1121f"
+            color3="#ffffff"
+            speed={0.5}
+            sweepSpeed={0.25}
+            sweepWidth={1.6}
+            sweepFalloff={6}
+            scale={1.5}
+            frequency={2}
+            ripple={0.22}
+            bandDensity={11}
+            lineSharpness={5.5}
+            glow={0.22}
+            scanDirection="vertical"
+            colorSpread={0.7}
+            brightness={1.0}
+            contrast={1.15}
+            softness={1.4}
+            vignette={0.45}
+            scanline={true}
+            grain={true}
+            grainIntensity={0.05}
+            opacity={1.0}
+            mouseInteraction={true}
+            mouseRadius={0.5}
+            mouseStrength={0.5}
+          />
+        </div>
+        <div className="scanner-section__fade" />
+        <div className="scanner-section__content">
+          <div className="listening-stats">
+            <TimeClock hourly={listeningByHour} />
+            <WeekdayChart weekdays={listeningByWeekday} />
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

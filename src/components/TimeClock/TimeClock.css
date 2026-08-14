@@ -1,0 +1,75 @@
+.time-clock {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.time-clock__title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.3px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.time-clock__chart-wrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+}
+
+.time-clock__svg { width: 100%; height: 100%; }
+
+.time-clock__ring {
+  fill: none;
+  stroke: var(--border-color);
+  stroke-width: 1;
+  opacity: 0.4;
+}
+
+.time-clock__spoke {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 0.75;
+}
+
+.time-clock__spoke--peak {
+  stroke: var(--accent-hover);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+.time-clock__marker {
+  fill: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.time-clock__peak-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.time-clock__peak-value { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+.time-clock__peak-caption {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+@media (max-width: 480px) {
+  .time-clock__chart-wrap { width: 220px; height: 220px; }
+}

@@ -1,6 +1,15 @@
 export const totalScrobbles = 902
 export const weeklyGenre = "midwest emo"
 
+// Scrobbles per hour (0 = midnight, 23 = 11 PM)
+export const listeningByHour = [
+  3, 2, 1, 0, 0, 1, 4, 9, 14, 18, 22, 26,
+  28, 24, 19, 16, 20, 26, 32, 35, 30, 22, 12, 6,
+]
+
+// Scrobbles per weekday (Sun → Sat)
+export const listeningByWeekday = [38, 52, 61, 74, 68, 89, 95]
+
 export const user = {
   name: 'joaopedro',
   avatar: '',
