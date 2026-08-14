@@ -4,6 +4,8 @@ import DriftWall from './components/DriftWall/DriftWall'
 import SplitText from './components/SplitText/SplitText'
 import ScrobblesSection from './components/ScrobblesSection/ScrobblesSection'
 import RetroGrid from './components/RetroGrid/RetroGrid'
+import EtherWavesBackground from './components/EtherWaves/EtherWaves'
+import './components/EtherWaves/EtherWaves.css'
 import { user, recentlyPlayed, topAlbums, totalScrobbles } from './data/mockData'
 import './App.css'
 
@@ -94,6 +96,17 @@ function App() {
         <ScrobblesSection scrobbles={totalScrobbles} />
 
       </main>
+
+      <div className="ether-waves-wrapper">
+              <EtherWavesBackground
+                linesGradient={["#ff2d55", "#c1121f", "#780000"]}
+                lineCount={6}
+                transparentBg={true}
+                interactive={false}
+                parallax={false}
+              />
+              <div className="ether-waves__fade" />
+            </div>
     </div>
   )
 }

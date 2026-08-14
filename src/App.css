@@ -25,14 +25,14 @@
   overflow-y: auto;
 }
 
-/* Dark overlay spanning the full page — transitions from transparent (top,
-   over the retro grid) into solid dark by the time the scrobbles section
-   comes into view. Absolute (not fixed) so the transition is tied to actual
-   position on the page instead of always looking the same on screen. */
 .app__page-dark {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(61, 12, 12, 0.3) 25%, #0a0a0a 55%);
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(61, 12, 12, 0.3) 400px,
+    #0a0a0a 850px
+  );
   pointer-events: none;
   z-index: 0;
 }
