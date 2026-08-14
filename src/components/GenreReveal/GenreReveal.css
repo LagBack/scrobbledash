@@ -1,0 +1,63 @@
+.genre-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 3;               /* above the fade (z-index: 2) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  padding: 0 24px;
+}
+
+.genre-reveal__eyebrow {
+  font-size: 16px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.genre-reveal__wheel {
+  position: relative;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.genre-reveal__word {
+  display: inline-block;
+  font-size: 64px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  text-transform: capitalize;
+  color: var(--text-primary);
+  will-change: transform, opacity, filter;
+}
+
+.genre-reveal__word--settled {
+  color: var(--accent-hover);
+  text-shadow: 0 0 40px var(--accent-glow);
+}
+
+.genre-reveal__underline {
+  width: 120px;
+  height: 3px;
+  margin-top: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+  transform-origin: center;
+}
+
+@media (max-width: 768px) {
+  .genre-reveal__word { font-size: 42px; }
+  .genre-reveal__wheel { height: 60px; }
+}
+
+@media (max-width: 480px) {
+  .genre-reveal__word { font-size: 32px; }
+  .genre-reveal__eyebrow { font-size: 13px; letter-spacing: 3px; }
+}

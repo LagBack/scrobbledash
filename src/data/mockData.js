@@ -1,4 +1,5 @@
 export const totalScrobbles = 902
+export const weeklyGenre = "midwest emo"
 
 export const user = {
   name: 'joaopedro',

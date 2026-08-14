@@ -6,7 +6,9 @@ import ScrobblesSection from './components/ScrobblesSection/ScrobblesSection'
 import RetroGrid from './components/RetroGrid/RetroGrid'
 import EtherWavesBackground from './components/EtherWaves/EtherWaves'
 import './components/EtherWaves/EtherWaves.css'
-import { user, recentlyPlayed, topAlbums, totalScrobbles } from './data/mockData'
+import GenreReveal from './components/GenreReveal/GenreReveal'
+import './components/GenreReveal/GenreReveal.css'
+import { user, recentlyPlayed, topAlbums, totalScrobbles, weeklyGenre } from './data/mockData'
 import './App.css'
 
 function App() {
@@ -98,15 +100,16 @@ function App() {
       </main>
 
       <div className="ether-waves-wrapper">
-              <EtherWavesBackground
-                linesGradient={["#ff2d55", "#c1121f", "#780000"]}
-                lineCount={6}
-                transparentBg={true}
-                interactive={false}
-                parallax={false}
-              />
-              <div className="ether-waves__fade" />
-            </div>
+        <EtherWavesBackground
+          linesGradient={["#ff2d55", "#c1121f", "#780000"]}
+          lineCount={6}
+          transparentBg={true}
+          interactive={false}
+          parallax={false}
+        />
+        <div className="ether-waves__fade" />
+        <GenreReveal genre={weeklyGenre} />
+      </div>
     </div>
   )
 }
