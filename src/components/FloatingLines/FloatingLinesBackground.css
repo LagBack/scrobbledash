@@ -1,0 +1,172 @@
+/* ===== Wrapper ===== */
+.floating-lines-wrapper {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  z-index: 5;
+  background-color: var(--bg-primary);
+  padding-bottom: 48px;
+}
+
+.floating-lines-wrapper__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.25) 10%,
+    rgba(0, 0, 0, 0.65) 22%,
+    #000 36%,
+    #000 62%,
+    rgba(0, 0, 0, 0.82) 72%,
+    rgba(0, 0, 0, 0.55) 82%,
+    rgba(0, 0, 0, 0.28) 90%,
+    rgba(0, 0, 0, 0.1) 96%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(180deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.25) 10%,
+    rgba(0, 0, 0, 0.65) 22%,
+    #000 36%,
+    #000 62%,
+    rgba(0, 0, 0, 0.82) 72%,
+    rgba(0, 0, 0, 0.55) 82%,
+    rgba(0, 0, 0, 0.28) 90%,
+    rgba(0, 0, 0, 0.1) 96%,
+    transparent 100%
+  );
+}
+
+.floating-lines-wrapper__bg .floating-lines-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Dim overlay — pulls brightness in line with the rest of the page ===== */
+.floating-lines__dim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(61, 0, 0, 0.14) 0%, transparent 70%),
+    linear-gradient(180deg,
+      rgba(10, 10, 10, 0.92) 0%,
+      rgba(10, 10, 10, 0.72) 18%,
+      rgba(10, 10, 10, 0.58) 50%,
+      rgba(10, 10, 10, 0.68) 78%,
+      rgba(10, 10, 10, 0.82) 90%,
+      rgba(10, 10, 10, 0.94) 100%
+    );
+  pointer-events: none;
+}
+
+/* ===== Content overlay (sits above the canvas) ===== */
+.floating-lines__content {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ===== Top fade — blends scanner section above into the canvas ===== */
+.floating-lines__fade-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+  background: linear-gradient(180deg,
+    #0a0a0a 0%,
+    rgba(10, 10, 10, 0.96) 18%,
+    rgba(10, 10, 10, 0.72) 42%,
+    rgba(10, 10, 10, 0.28) 72%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ===== Bottom fade — blends canvas into gradient-waves section below ===== */
+.floating-lines__fade-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 320px;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(10, 10, 10, 0.08) 20%,
+    rgba(10, 10, 10, 0.28) 40%,
+    rgba(10, 10, 10, 0.52) 58%,
+    rgba(10, 10, 10, 0.72) 72%,
+    rgba(10, 10, 10, 0.88) 86%,
+    rgba(10, 10, 10, 0.96) 94%,
+    #0a0a0a 100%
+  );
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ===== Top Artists ===== */
+.floating-lines__content .artists-section {
+  width: 100%;
+  padding: 48px 24px 0;
+}
+
+.floating-lines__content .artists-section__content {
+  width: 100%;
+}
+
+.floating-lines__content .artists-section__title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.3px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+/* ===== Fun Stats — glass cards over the animated lines ===== */
+.floating-lines__content .fun-stats {
+  padding: 56px 24px 80px;
+}
+
+.floating-lines__content .fun-stats__card {
+  background: rgba(16, 16, 16, 0.58);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 860px) {
+  .floating-lines__content .fun-stats__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .floating-lines__content .fun-stats__card {
+    min-height: auto;
+    padding: 32px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .floating-lines__content .artists-section {
+    padding: 40px 16px 0;
+  }
+
+  .floating-lines__content .fun-stats {
+    padding: 48px 20px 64px;
+  }
+
+  .floating-lines__fade-top {
+    height: 180px;
+  }
+
+  .floating-lines__fade-bottom {
+    height: 260px;
+  }
+}

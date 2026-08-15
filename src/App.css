@@ -162,29 +162,6 @@
   cursor: grabbing;
 }
 
-/* ===== Top Artists (Accordion Gallery) ===== */
-.artists-section {
-  width: 100%;
-  position: relative;
-  z-index: 5;
-  padding: 48px 24px 64px;
-}
-
-.artists-section__content {
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.artists-section__title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  letter-spacing: -0.3px;
-  margin-bottom: 24px;
-  text-align: center;
-}
-
 /* ===== Scrobbles Section (MagicRings choreography) ===== */
 .app__scrobbles {
   width: 100%;
