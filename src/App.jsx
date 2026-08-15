@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import CircularGallery from './components/CircularGallery/CircularGallery'
+import AccordionGallery from './components/AccordionGallery/AccordionGallery'
+import './components/AccordionGallery/AccordionGallery.css'
 import DriftWall from './components/DriftWall/DriftWall'
 import SplitText from './components/SplitText/SplitText'
 import ScrobblesSection from './components/ScrobblesSection/ScrobblesSection'
@@ -17,7 +19,9 @@ import WeekdayChart from './components/WeekdayChart/WeekdayChart'
 import './components/WeekdayChart/WeekdayChart.css'
 import GradientWaves from './components/GradientWaves/GradientWaves'
 import './components/GradientWaves/GradientWaves.css'
-import { user, recentlyPlayed, topAlbums, totalScrobbles, weeklyGenre, listeningByHour, listeningByWeekday } from './data/mockData'
+import FunStatsSection from './components/FunStatsSection/FunStatsSection'
+import './components/FunStatsSection/FunStatsSection.css'
+import { user, recentlyPlayed, topArtists, topAlbums, totalScrobbles, weeklyGenre, listeningByHour, listeningByWeekday, funStats, dominantArtist, secondArtist, mostPlayedTrack, dominantRatio } from './data/mockData'
 import './App.css'
 
 function App() {
@@ -159,6 +163,38 @@ function App() {
           </div>
         </div>
       </section>
+
+      <section className="artists-section">
+        <div className="artists-section__content">
+          <h2 className="artists-section__title">Top Artists</h2>
+          <AccordionGallery
+            items={topArtists.map(artist => ({
+              image: artist.image,
+              label: `${artist.name} · ${artist.plays} plays`,
+              alt: artist.name,
+            }))}
+            defaultIndex={2}
+            expandRatio={0.52}
+            trigger="hover"
+            accentColor="#c1121f"
+            overlayColor="#0a0a0a"
+            textColor="#ffffff"
+            height={460}
+            gap={10}
+            radius={16}
+            grayscale={true}
+            showLabels={true}
+          />
+        </div>
+      </section>
+
+      <FunStatsSection
+        stats={funStats}
+        dominantArtist={dominantArtist}
+        secondArtist={secondArtist}
+        mostPlayedTrack={mostPlayedTrack}
+        dominantRatio={dominantRatio}
+      />
 
       <section className="gradient-waves-section" aria-hidden="true">
         <div className="gradient-waves-section__bg">

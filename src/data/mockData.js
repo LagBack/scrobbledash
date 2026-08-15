@@ -10,10 +10,72 @@ export const listeningByHour = [
 // Scrobbles per weekday (Sun → Sat)
 export const listeningByWeekday = [38, 52, 61, 74, 68, 89, 95]
 
+export const funStats = {
+  listeningStreak: 47,
+  hoursThisWeek: 38,
+  newArtistsThisMonth: 23,
+  mostSkippedTrack: 'Wonderwall',
+  peakHour: '9 PM',
+  quip: 'terminally online',
+}
+
+// Dominant artist data (calculated from total scrobbles per artist)
+export const dominantArtist = {
+  name: 'Radiohead',
+  plays: 842,
+  percentage: 0.93, // (842 / totalScrobbles * 100), rounded to 2 decimals
+}
+
+// Second-place artist for comparison
+export const secondArtist = {
+  name: 'Pink Floyd',
+  plays: 731,
+}
+
+// Most played track
+export const mostPlayedTrack = {
+  track: 'Creep',
+  artist: 'Radiohead',
+  album: 'Pablo Honey',
+  plays: 42,
+  cover: 'https://upload.wikimedia.org/wikipedia/en/9/1b/Pablo_Stone.jpg',
+}
+
+// Derived ratio for comparison display
+export const dominantRatio = (dominantArtist.plays / secondArtist.plays).toFixed(1) // "1.2"
+
 export const user = {
   name: 'joaopedro',
   avatar: '',
 }
+
+export const topArtists = [
+  {
+    name: 'Radiohead',
+    plays: 842,
+    image: 'https://upload.wikimedia.org/wikipedia/en/b/b9/Radiohead_-_OK_Computer.png',
+  },
+  {
+    name: 'Pink Floyd',
+    plays: 731,
+    image: 'https://upload.wikimedia.org/wikipedia/en/3/3b/Dark_Side_of_the_Moon.png',
+  },
+  {
+    name: 'Muse',
+    plays: 618,
+    image: 'https://upload.wikimedia.org/wikipedia/en/e/ea/Muse_Absolution_album_cover.jpg',
+  },
+  {
+    name: 'Arctic Monkeys',
+    plays: 554,
+    image: 'https://upload.wikimedia.org/wikipedia/en/8/87/Arctic_Monkeys_-_AM.jpg',
+  },
+  {
+    name: 'The Killers',
+    plays: 497,
+    image: 'https://upload.wikimedia.org/wikipedia/en/9/96/HotFuss320.jpg',
+  },
+]
 
 export const recentlyPlayed = [
   {

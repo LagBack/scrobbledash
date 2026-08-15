@@ -1,0 +1,216 @@
+.fun-stats {
+  width: 100%;
+  position: relative;
+  z-index: 5;
+  padding: 56px 24px 160px;
+}
+
+.fun-stats__inner {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.fun-stats__heading {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.3px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.fun-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.fun-stats__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 280px;
+  padding: 36px 28px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(20, 20, 20, 0.72);
+  text-align: center;
+}
+
+.fun-stats__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+/* ===== Dominant Artist Card ===== */
+.fun-stats__card--dominant {
+  justify-content: flex-start;
+  gap: 16px;
+  min-height: 300px;
+}
+
+.fun-stats__dominant-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.fun-stats__dominant-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.fun-stats__dominant-stat {
+  font-size: clamp(2.5rem, 4vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, var(--accent), #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.fun-stats__dominant-desc {
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.fun-stats__dominant-artist {
+  font-size: clamp(1.6rem, 2.8vw, 2.2rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 4px 0 0;
+  letter-spacing: -0.5px;
+}
+
+.fun-stats__dominant-plays {
+  font-size: clamp(0.82rem, 1.2vw, 0.92rem);
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 340px;
+}
+
+/* Comparison bar */
+.fun-stats__comparison {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  width: 100%;
+}
+
+.fun-stats__comparison-bar {
+  position: relative;
+  width: calc(100% - 40px);
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.fun-stats__comparison-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), #ff6b6b);
+  transition: width 1s ease-out;
+}
+
+.fun-stats__comparison-text {
+  font-size: clamp(0.78rem, 1.1vw, 0.88rem);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ===== Most Played Track Card ===== */
+.fun-stats__card--track {
+  justify-content: flex-start;
+  gap: 14px;
+  min-height: 300px;
+}
+
+.fun-stats__track-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.fun-stats__track-art {
+  width: 140px;
+  height: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.fun-stats__track-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fun-stats__track-title {
+  font-size: clamp(1.3rem, 2vw, 1.65rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.fun-stats__track-artist {
+  font-size: clamp(0.88rem, 1.2vw, 1rem);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.fun-stats__track-album {
+  font-size: clamp(0.78rem, 1.1vw, 0.88rem);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.fun-stats__track-plays {
+  font-size: clamp(0.82rem, 1.1vw, 0.92rem);
+  color: var(--accent-hover);
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 860px) {
+  .fun-stats__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fun-stats__card {
+    min-height: auto;
+    padding: 32px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fun-stats {
+    padding: 48px 20px 140px;
+  }
+}
