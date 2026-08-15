@@ -36,6 +36,12 @@
   box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.8);
   will-change: flex-grow, transform;
   -webkit-tap-highlight-color: transparent;
+  border: 1px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.ag-panel:hover {
+  border-color: rgba(193, 18, 31, 0.45);
 }
 
 .ag-panel:focus-visible {

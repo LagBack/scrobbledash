@@ -4,8 +4,6 @@ export default function FunStatsSection({ stats, dominantArtist, secondArtist, m
   return (
     <section className="fun-stats">
       <div className="fun-stats__inner">
-        <h2 className="fun-stats__heading">Odds &amp; Ends</h2>
-
         <div className="fun-stats__grid">
           {/* Dominant Artist Card */}
           <article className="fun-stats__card fun-stats__card--dominant">
@@ -22,13 +20,11 @@ export default function FunStatsSection({ stats, dominantArtist, secondArtist, m
 
               {/* Comparison with #2 */}
               <div className="fun-stats__comparison">
-                <span className="fun-stats__comparison-bar">
-                  <span className="fun-stats__comparison-fill" style={{ width: `${(secondArtist.plays / dominantArtist.plays) * 100}%` }} />
-                </span>
                 <p className="fun-stats__comparison-text">
                   <strong>{dominantArtist.name}</strong> has <strong>{dominantRatio}×</strong> more plays than <strong>{secondArtist.name}</strong> (#2)
                 </p>
               </div>
+
             </div>
           </article>
 

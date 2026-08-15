@@ -83,7 +83,7 @@ function App() {
 
         {/* DriftWall — top album covers */}
         <section className="app__driftwall">
-          <h2 className="app__driftwall-title">Top Album Covers</h2>
+          <h2 className="app__driftwall-title">Top Albums</h2>
           <div className="app__driftwall-container">
             <DriftWall
               items={topAlbums.map(a => ({ image: a.cover, title: `${a.artist} — ${a.album}` }))}
