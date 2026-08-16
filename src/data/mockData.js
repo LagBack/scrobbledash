@@ -37,7 +37,6 @@ export const mostPlayedTrack = {
   track: 'Creep',
   artist: 'Radiohead',
   album: 'Pablo Honey',
-  plays: 42,
   cover: 'https://upload.wikimedia.org/wikipedia/en/9/1b/Pablo_Stone.jpg',
 }
 

@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import RetroGrid from '../components/RetroGrid/RetroGrid';
 import './Home.css';
 
-export default function Home({ onUsername }) {
+export default function Home() {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = useCallback(
     e => {
@@ -15,9 +17,9 @@ export default function Home({ onUsername }) {
         return;
       }
       setError('');
-      onUsername(trimmed);
+      navigate(`/app?user=${encodeURIComponent(trimmed)}`);
     },
-    [username, onUsername],
+    [username, navigate],
   );
 
   return (

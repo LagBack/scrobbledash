@@ -1,5 +1,4 @@
 import { Routes, Route, useSearchParams, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import Home from './pages/Home'
 import CircularGallery from './components/CircularGallery/CircularGallery'
 import DriftWall from './components/DriftWall/DriftWall'
@@ -21,40 +20,97 @@ import GradientWaves from './components/GradientWaves/GradientWaves'
 import './components/GradientWaves/GradientWaves.css'
 import FloatingLinesBackground from './components/FloatingLines/FloatingLinesBackground'
 import PageFooter from './components/PageFooter/PageFooter'
-import { user, recentlyPlayed, topArtists, topAlbums, totalScrobbles, weeklyGenre, listeningByHour, listeningByWeekday, dominantArtist, secondArtist, mostPlayedTrack, dominantRatio } from './data/mockData'
+import { recentlyPlayed as mockRecentlyPlayed, topAlbums as mockTopAlbums } from './data/mockData'
+import useLastFmData from './lib/useLastFmData'
 import './App.css'
 
 function Dashboard() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const username = searchParams.get('user') || user.name
+  const username = searchParams.get('user') || ''
 
-  const handleGenerateCard = () => {
-    // TODO: generate Spotify Wrapped-style listening summary card
+  const { data, loading, error } = useLastFmData(username)
+
+  // ── Derived values (fallback to mock for missing fields) ──
+  const d = data || {}
+  const user = d.user || { name: username }
+  const recentlyPlayed = d.recentlyPlayed ?? mockRecentlyPlayed
+  const topAlbums = d.topAlbums ?? mockTopAlbums
+  const totalScrobbles = d.totalScrobbles
+  const weeklyGenre = d.weeklyGenre || ''
+  const listeningByHour = d.listeningByHour || []
+  const listeningByWeekday = d.listeningByWeekday || []
+  const topArtists = d.topArtists || []
+  const dominantArtist = d.dominantArtist || {}
+  const secondArtist = d.secondArtist || {}
+  const mostPlayedTrack = d.mostPlayedTrack || {}
+
+  // For FloatingLinesBackground, only pass valid data
+  const floatingData = topArtists.length && dominantArtist.name ? {
+    topArtists,
+    dominantArtist,
+    secondArtist,
+    mostPlayedTrack,
+    dominantRatio: (dominantArtist.plays / secondArtist.plays).toFixed(1),
+  } : null
+
+  if (loading) {
+    return (
+      <div className="app__loading">
+        <p>fetching your stats...</p>
+      </div>
+    )
+  }
+
+  if (error && !data) {
+    return (
+      <div className="app">
+        <RetroGrid />
+        <div className="app__page-dark" />
+        <main className="app__main app__main--error">
+          <p className="app__error-text">{error}</p>
+          <button className="home__submit" onClick={() => navigate('/')}>
+            go back
+          </button>
+        </main>
+      </div>
+    )
+  }
+
+  // ── No data and no loading → just show the home-style input screen ──
+  if (!data) {
+    return (
+      <div className="app">
+        <RetroGrid />
+        <div className="app__page-dark" />
+        <header className="app__header">
+          <div className="app__logo">
+            <button onClick={() => navigate('/')} style={backBtn} aria-label="Back to home">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent)">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+              <circle cx="12" cy="12" r="3" fill="#0a0a0a"/>
+            </svg>
+            <span className="app__logo-text">scrobble<span className="app__logo-accent">dash</span></span>
+          </div>
+        </header>
+      </div>
+    )
   }
 
   return (
     <div className="app">
-      {/* Retro grid background — fixed, behind all content */}
+      {/* Retro grid background */}
       <RetroGrid />
-
-      {/* Full-page dark gradient overlay — transparent at top (shows retro grid), fades into dark for the scrobbles section */}
       <div className="app__page-dark" />
 
-      {/* Header with back button */}
+      {/* Header */}
       <header className="app__header">
         <div className="app__logo">
-          <button
-            onClick={() => navigate('/')}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              marginRight: 8,
-            }}
-            aria-label="Back to home"
-          >
+          <button onClick={() => navigate('/')} style={backBtn} aria-label="Back to home">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -75,7 +131,7 @@ function Dashboard() {
             welcome,
             <span className="app__accent">
               <SplitText
-                text={username}
+                text={user.name}
                 delay={80}
                 duration={1.25}
                 ease="power3.out"
@@ -93,7 +149,7 @@ function Dashboard() {
         {/* Circular gallery — latest tracks */}
         <section className="app__gallery-wrapper">
           <CircularGallery
-            items={recentlyPlayed.map(t => ({ image: t.cover, text: `${t.track}` }))}
+            items={recentlyPlayed.map(t => ({ image: t.image || t.cover, text: t.text }))}
             bend={3}
             textColor="#ffffff"
             borderRadius={0.05}
@@ -107,7 +163,7 @@ function Dashboard() {
           <h2 className="app__driftwall-title">Top Albums</h2>
           <div className="app__driftwall-container">
             <DriftWall
-              items={topAlbums.map(a => ({ image: a.cover, title: `${a.artist} — ${a.album}` }))}
+              items={topAlbums.map(a => ({ image: a.image || a.cover, title: a.title }))}
               columns={6}
               tileWidth={180}
               tileHeight={120}
@@ -129,8 +185,7 @@ function Dashboard() {
         </section>
 
         {/* MagicRings → scrobbles choreography */}
-        <ScrobblesSection scrobbles={totalScrobbles} />
-
+        <ScrobblesSection scrobbles={totalScrobbles || 0} />
       </main>
 
       <div className="ether-waves-wrapper">
@@ -142,7 +197,7 @@ function Dashboard() {
           parallax={false}
         />
         <div className="ether-waves__fade" />
-        <GenreReveal genre={weeklyGenre} />
+        {weeklyGenre && <GenreReveal genre={weeklyGenre} />}
       </div>
 
       <section className="scanner-section">
@@ -179,19 +234,15 @@ function Dashboard() {
         <div className="scanner-section__fade" />
         <div className="scanner-section__content">
           <div className="listening-stats">
-            <TimeClock hourly={listeningByHour} />
-            <WeekdayChart weekdays={listeningByWeekday} />
+            <TimeClock hourly={listeningByHour.length ? listeningByHour : new Array(24).fill(0)} />
+            <WeekdayChart weekdays={listeningByWeekday.length ? listeningByWeekday : new Array(7).fill(0)} />
           </div>
         </div>
       </section>
 
-      <FloatingLinesBackground
-        topArtists={topArtists}
-        dominantArtist={dominantArtist}
-        secondArtist={secondArtist}
-        mostPlayedTrack={mostPlayedTrack}
-        dominantRatio={dominantRatio}
-      />
+      {floatingData && (
+        <FloatingLinesBackground {...floatingData} />
+      )}
 
       <section className="gradient-waves-section">
         <div className="gradient-waves-section__bg">
@@ -220,11 +271,19 @@ function Dashboard() {
         </div>
         <div className="gradient-waves-section__fade" />
         <div className="gradient-waves-section__content">
-          <PageFooter onGenerateCard={handleGenerateCard} />
+          <PageFooter onGenerateCard={() => {}} />
         </div>
       </section>
     </div>
   )
+}
+
+const backBtn = {
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  padding: 0,
+  marginRight: 8,
 }
 
 function App() {
