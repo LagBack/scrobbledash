@@ -1,3 +1,6 @@
+import { Routes, Route, useSearchParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import Home from './pages/Home'
 import CircularGallery from './components/CircularGallery/CircularGallery'
 import DriftWall from './components/DriftWall/DriftWall'
 import SplitText from './components/SplitText/SplitText'
@@ -18,11 +21,14 @@ import GradientWaves from './components/GradientWaves/GradientWaves'
 import './components/GradientWaves/GradientWaves.css'
 import FloatingLinesBackground from './components/FloatingLines/FloatingLinesBackground'
 import PageFooter from './components/PageFooter/PageFooter'
-import './components/PageFooter/PageFooter.css'
 import { user, recentlyPlayed, topArtists, topAlbums, totalScrobbles, weeklyGenre, listeningByHour, listeningByWeekday, dominantArtist, secondArtist, mostPlayedTrack, dominantRatio } from './data/mockData'
 import './App.css'
 
-function App() {
+function Dashboard() {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const username = searchParams.get('user') || user.name
+
   const handleGenerateCard = () => {
     // TODO: generate Spotify Wrapped-style listening summary card
   }
@@ -35,9 +41,24 @@ function App() {
       {/* Full-page dark gradient overlay — transparent at top (shows retro grid), fades into dark for the scrobbles section */}
       <div className="app__page-dark" />
 
-      {/* Header */}
+      {/* Header with back button */}
       <header className="app__header">
         <div className="app__logo">
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              marginRight: 8,
+            }}
+            aria-label="Back to home"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </button>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent)">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
             <circle cx="12" cy="12" r="3" fill="#0a0a0a"/>
@@ -54,7 +75,7 @@ function App() {
             welcome,
             <span className="app__accent">
               <SplitText
-                text={user.name}
+                text={username}
                 delay={80}
                 duration={1.25}
                 ease="power3.out"
@@ -203,6 +224,15 @@ function App() {
         </div>
       </section>
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home onUsername={(name) => window.location.href = `/app?user=${encodeURIComponent(name)}`} />} />
+      <Route path="/app" element={<Dashboard />} />
+    </Routes>
   )
 }
 
