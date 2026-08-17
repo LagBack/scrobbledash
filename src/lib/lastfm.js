@@ -25,6 +25,86 @@ export function img(arr) {
 
 // ── API functions ────────────────────────────────
 
+/** Filename of the generic Last.fm no-image placeholder icon. */
+const NOIMAGE_ID = '2a96cbd8b46e442fc41c2b86b821562f.png'
+
+/** Resolve a Last.fm album image array into the largest real URL, or empty string if none. */
+export function pickImg(arr) {
+  if (!arr || typeof arr === 'string') return ''
+  if (Array.isArray(arr)) {
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const entry = arr[i]
+      const url = typeof entry === 'string' ? entry : (entry?.['#text'] ?? '')
+      if (url && !url.includes(NOIMAGE_ID) && (url.startsWith('http') || url.startsWith('//'))) {
+        return url.startsWith('//') ? `https:${url}` : url
+      }
+    }
+  }
+  if (typeof arr === 'object') {
+    const url = arr.url ?? arr.src ?? arr.href ?? ''
+    if (typeof url === 'string' && url.startsWith('http') && !url.includes(NOIMAGE_ID)) return url
+  }
+  return ''
+}
+
+/** Search iTunes for album artwork by track name + artist. Returns image URL or null. */
+export async function fetchAlbumArt(trackName, artistName) {
+  const term = encodeURIComponent(`${trackName} ${artistName}`)
+
+  // Try iTunes first
+  try {
+    const itunesUrl = `https://itunes.apple.com/search?term=${term}&entity=song&limit=3`
+    const res = await fetch(itunesUrl)
+    if (res.ok) {
+      const json = await res.json()
+      if (json?.results?.length) {
+        console.log(`[lastfm] iTunes art for "${trackName}" by "${artistName}": ${json.results.length} result(s)`)
+        // Prefer exact artist match; fall back to first result
+        const hit = json.results.find(r => r.artistName === artistName) ?? json.results[0]
+        const url100 = hit?.artworkUrl100 || hit?.artworkUrl60
+        if (url100) {
+          // Use the URL as-is — Apple CDN URLs already include a size suffix (e.g. /100x100bb.jpg).
+          // The iTunes Search API provides images at their best available resolution;
+          // requesting larger sizes returns 404 since the original upload may not be that big.
+          console.log(`[lastfm]   → ${url100}`)
+          return url100
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[lastfm] iTunes art fetch failed for "${trackName}":`, err.message)
+  }
+
+  // Fallback: try Last.fm album search API for the artwork URL
+  if (artistName && trackName) {
+    const lfUrl = `${BASE}?method=album.search&format=json&api_key=${import.meta.env.VITE_LASTFM_API_KEY || ''}&album=${encodeURIComponent(trackName)}&artist=${encodeURIComponent(artistName)}`
+    try {
+      const res = await fetch(lfUrl)
+      if (res.ok) {
+        const json = await res.json()
+        const matches = json?.albummatches?.album
+        if (Array.isArray(matches) && matches.length) {
+          // Use the album image from Last.fm search results
+          for (const a of matches) {
+            if (a?.image) {
+              const art = pickImg(a.image)
+              if (art) {
+                console.log(`[lastfm]   → fallback via Last.fm search: ${art}`)
+                return art
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[lastfm] Last.fm album search failed for "${trackName}":`, err.message)
+    }
+  }
+
+  console.log(`[lastfm] No album art found for "${trackName}" by "${artistName}"`)
+  return null
+}
+
 /** Fetch basic user info (name, avatar, total scrobbles). */
 export async function fetchUserInfo(username) {
   const url = get('user.getInfo') + `&user=${encodeURIComponent(username)}`

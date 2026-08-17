@@ -298,11 +298,39 @@ class Media {
     });
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.src = this.image;
+    let settled = false;
+
     img.onload = () => {
+      if (settled) return;
+      settled = true;
       texture.image = img;
       this.program.uniforms.uImageSizes.value = [img.naturalWidth, img.naturalHeight];
     };
+    img.onerror = () => {
+      if (settled) return; // direct src already loaded successfully
+
+      // If direct Image load fails (CORS), try fetching as blob and converting to data URL.
+      // WebGL textures require the source element to be non-tainted; cross-origin images
+      // from Apple CDN may silently fail in some browsers, so fetch+blob is a fallback.
+      fetch(this.image, { mode: 'cors' })
+        .then(r => r.blob())
+        .then(blob => {
+          const url = URL.createObjectURL(blob);
+          const img2 = new Image();
+          img2.onload = () => {
+            if (settled) return;
+            settled = true;
+            texture.image = img2;
+            this.program.uniforms.uImageSizes.value = [img2.naturalWidth, img2.naturalHeight];
+          };
+          img2.src = url;
+        })
+        .catch(() => {
+          console.warn('[CircularGallery] Failed to load image:', this.image);
+        });
+    };
+
+    img.src = this.image;
   }
   createMesh() {
     this.plane = new Mesh(this.gl, {

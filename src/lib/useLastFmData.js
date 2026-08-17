@@ -6,6 +6,8 @@ import {
   fetchTopAlbums,
   fetchTopArtists,
   fetchArtistTags,
+  fetchAlbumArt,
+  pickImg,
 } from './lastfm'
 import {
   user as mockUser,
@@ -24,27 +26,6 @@ import {
 const PLACEHOLDER = 'https://lastfm.freetls.fastly.net/img/noimage_200.png'
 
 // ── helpers for data transformation ───────────────
-
-/** Pick the largest image URL from a Last.fm image array. */
-function pickImg(arr) {
-  if (!arr || typeof arr === 'string') return ''
-  if (Array.isArray(arr)) {
-    // last.fm images are ordered small → medium → large → extralarge
-    for (let i = arr.length - 1; i >= 0; i--) {
-      const entry = arr[i]
-      const url = typeof entry === 'string' ? entry : (entry?.['#text'] ?? '')
-      if (url && (url.startsWith('http') || url.startsWith('//'))) return url.startsWith('//') ? `https:${url}` : url
-    }
-  }
-  // single object without '#text'? Try .href or .src
-  if (typeof arr === 'object') {
-    const url = arr.url ?? arr.src ?? arr.href ?? ''
-    if (typeof url === 'string' && (url.startsWith('http') || url.startsWith('//'))) {
-      return url.startsWith('//') ? `https:${url}` : url
-    }
-  }
-  return ''
-}
 
 /** Check if an image URL looks like a real, loadable image. */
 function isValidImgUrl(url) {
@@ -206,13 +187,38 @@ export default function useLastFmData(username) {
       mockTotalScrobbles
     console.log('[lastfm] effective totalScrobbles:', effectiveTotalScrobbles)
 
-    // Recently played: prefer recenttracks, fall back to topTracks for images
-    const recentlyPlayed = recentData?.length
-      ? recentData.slice(0, 12).map(t => ({
-          image: pickImg(t.album?.image) || PLACEHOLDER,
-          text: t.name,
-        }))
-      : (tracksData?.tracks ? normalizeTopTracks(tracksData) : [])
+    // Recently played: prefer recenttracks — resolve real album art per-track
+    let recentlyPlayed = []
+    if (recentData?.length) {
+      const items = recentData.slice(0, 12).map(t => ({
+        track: t.name,
+        artistName: t.artist?.name ?? '',
+        mbid: t.mbid ?? '',
+        imagePromise: (async () => {
+          // First try Last.fm album image array (skip generic noimage placeholder)
+          const art = pickImg(t.album?.image)
+          if (art) return art
+          // Fallback: search iTunes for the track's album artwork
+          const result = await fetchAlbumArt(t.name, t.artist?.name ?? '')
+          if (result) return result
+          return PLACEHOLDER
+        })(),
+      }))
+      // Resolve all image lookups in parallel
+      const resolved = await Promise.allSettled(items.map(i => i.imagePromise))
+      recentlyPlayed = items.map((i, idx) => {
+        const value = resolved[idx]?.status === 'fulfilled' ? resolved[idx].value : PLACEHOLDER
+        console.log(`[lastfm] image for "${i.track}" → ${value.startsWith('PLACEHOLDER') || value.includes('noimage') ? '(placeholder)' : '(resolved URL: ' + value + ')'}`)
+        return {
+          image: value || PLACEHOLDER,
+          text: i.track,
+        }
+      })
+    } else if (tracksData?.tracks) {
+      recentlyPlayed = normalizeTopTracks(tracksData)
+    } else {
+      recentlyPlayed = []
+    }
 
     // Top albums — filtered to only those with valid images (no empty spots)
     const topAlbums = normalizeTopAlbums(albumsData) || []
