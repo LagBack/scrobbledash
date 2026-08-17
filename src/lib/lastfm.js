@@ -37,7 +37,9 @@ export async function fetchUserInfo(username) {
     return {
       name: user.name || username,
       image: img(user.image),
-      scrobbles: parseInt(user.stats?.scrobbles, 10) || 0,
+      // user.playcount is returned by the free/public API for all profiles
+      // user.stats.scrobbles is only available with OAuth authentication
+      scrobbles: parseInt(user.playcount ?? user.stats?.scrobbles, 10) || 0,
     }
   } catch {
     return null

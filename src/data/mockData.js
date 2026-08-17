@@ -46,6 +46,7 @@ export const dominantRatio = (dominantArtist.plays / secondArtist.plays).toFixed
 export const user = {
   name: 'joaopedro',
   avatar: '',
+  scrobbles: 90210,
 }
 
 export const topArtists = [
