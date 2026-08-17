@@ -18,9 +18,9 @@ import WeekdayChart from './components/WeekdayChart/WeekdayChart'
 import './components/WeekdayChart/WeekdayChart.css'
 import GradientWaves from './components/GradientWaves/GradientWaves'
 import './components/GradientWaves/GradientWaves.css'
-import FloatingLinesBackground from './components/FloatingLines/FloatingLinesBackground'
 import PageFooter from './components/PageFooter/PageFooter'
-import { recentlyPlayed as mockRecentlyPlayed, topAlbums as mockTopAlbums } from './data/mockData'
+import { topAlbums as mockTopAlbums } from './data/mockData'
+import FloatingLinesBackground from './components/FloatingLines/FloatingLinesBackground'
 import useLastFmData from './lib/useLastFmData'
 import './App.css'
 
@@ -34,25 +34,19 @@ function Dashboard() {
   // ── Derived values (fallback to mock for missing fields) ──
   const d = data || {}
   const user = d.user || { name: username }
-  const recentlyPlayed = d.recentlyPlayed ?? mockRecentlyPlayed
   const topAlbums = d.topAlbums ?? mockTopAlbums
   const totalScrobbles = d.totalScrobbles
   const weeklyGenre = d.weeklyGenre || ''
   const listeningByHour = d.listeningByHour || []
   const listeningByWeekday = d.listeningByWeekday || []
   const topArtists = d.topArtists || []
+  const topArtistsGallery = d.topArtistsGallery || []
   const dominantArtist = d.dominantArtist || {}
   const secondArtist = d.secondArtist || {}
   const mostPlayedTrack = d.mostPlayedTrack || {}
-
-  // For FloatingLinesBackground, only pass valid data
-  const floatingData = topArtists.length && dominantArtist.name ? {
-    topArtists,
-    dominantArtist,
-    secondArtist,
-    mostPlayedTrack,
-    dominantRatio: (dominantArtist.plays / secondArtist.plays).toFixed(1),
-  } : null
+  const dominantRatio = (secondArtist.plays > 0)
+    ? (dominantArtist.plays / secondArtist.plays).toFixed(1)
+    : '0'
 
   if (loading) {
     return (
@@ -146,10 +140,10 @@ function Dashboard() {
           <p className="app__subtitle">Here's what you've been listening to</p>
         </section>
 
-        {/* Circular gallery — latest tracks */}
+        {/* Top artists carousel */}
         <section className="app__gallery-wrapper">
           <CircularGallery
-            items={recentlyPlayed.map(t => ({ image: t.image || t.cover, text: t.text }))}
+            items={topArtistsGallery.map(a => ({ image: a.image, text: `${a.name}` }))}
             bend={3}
             textColor="#ffffff"
             borderRadius={0.05}
@@ -188,6 +182,7 @@ function Dashboard() {
         <ScrobblesSection scrobbles={totalScrobbles || 0} />
       </main>
 
+      
       <div className="ether-waves-wrapper">
         <EtherWavesBackground
           linesGradient={["#ff2d55", "#c1121f", "#780000"]}
@@ -239,10 +234,15 @@ function Dashboard() {
           </div>
         </div>
       </section>
+      
+      {/* Fun stats + floating lines background */}
+      <FloatingLinesBackground
+        dominantArtist={dominantArtist}
+        secondArtist={secondArtist}
+        mostPlayedTrack={mostPlayedTrack}
+        dominantRatio={dominantRatio}
+      />
 
-      {floatingData && (
-        <FloatingLinesBackground {...floatingData} />
-      )}
 
       <section className="gradient-waves-section">
         <div className="gradient-waves-section__bg">

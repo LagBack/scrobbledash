@@ -6,7 +6,7 @@ import {
   fetchTopAlbums,
   fetchTopArtists,
   fetchArtistTags,
-  fetchAlbumArt,
+  fetchArtistImage,
   pickImg,
 } from './lastfm'
 import {
@@ -26,6 +26,39 @@ import {
 const PLACEHOLDER = 'https://lastfm.freetls.fastly.net/img/noimage_200.png'
 
 // ── helpers for data transformation ───────────────
+
+/** Generate a unique gradient placeholder image as a base64 data URL using the track name as seed. */
+function makePlaceholder(trackName) {
+  // Deterministic color from hash of track name
+  let hash = 0
+  for (let i = 0; i < (trackName || '').length; i++) {
+    hash = trackName.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const h1 = Math.abs(hash) % 360
+  const h2 = (h1 + 40 + Math.abs(hash >> 8)) % 360 // slightly offset for gradient
+
+  // Draw gradient background + first letter
+  const c = document.createElement('canvas')
+  c.width = 400; c.height = 400
+  const ctx = c.getContext('2d')
+
+  const grad = ctx.createLinearGradient(0, 0, 400, 400)
+  grad.addColorStop(0, `hsl(${h1}, 55%, 22%)`)
+  grad.addColorStop(1, `hsl(${h2}, 50%, 12%)`)
+  ctx.fillStyle = grad
+  ctx.fillRect(0, 0, 400, 400)
+
+  const letter = (trackName || '?').charAt(0).toUpperCase()
+  ctx.fillStyle = '#ffffff'
+  ctx.globalAlpha = 0.15
+  ctx.font = 'bold 260px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(letter, 200, 200)
+  ctx.globalAlpha = 1
+
+  return c.toDataURL('image/jpeg', 0.85)
+}
 
 /** Check if an image URL looks like a real, loadable image. */
 function isValidImgUrl(url) {
@@ -139,6 +172,7 @@ export default function useLastFmData(username) {
         listeningByHour: [...mockListeningByHour],
         listeningByWeekday: [...mockListeningByWeekday],
         topArtists: mockTopArtists.map(a => ({ name: a.name, plays: a.plays, image: a.image })),
+        topArtistsGallery: mockTopArtists.map(a => ({ name: a.name, image: a.image || PLACEHOLDER })),
         dominantArtist: { ...mockDominantArtist },
         secondArtist: { ...mockSecondArtist },
         mostPlayedTrack: { ...mockMostPlayedTrack },
@@ -192,25 +226,28 @@ export default function useLastFmData(username) {
     if (recentData?.length) {
       const items = recentData.slice(0, 12).map(t => ({
         track: t.name,
-        artistName: t.artist?.name ?? '',
+        // Last.fm API returns artist names in ['#text'], not '.name' — handle both
+        artistName: t.artist?.['#text'] ?? t.artist?.name ?? '',
         mbid: t.mbid ?? '',
         imagePromise: (async () => {
           // First try Last.fm album image array (skip generic noimage placeholder)
           const art = pickImg(t.album?.image)
           if (art) return art
           // Fallback: search iTunes for the track's album artwork
-          const result = await fetchAlbumArt(t.name, t.artist?.name ?? '')
+          const artistName = t.artist?.['#text'] ?? t.artist?.name ?? ''
+          const result = await fetchAlbumArt(t.name, artistName)
           if (result) return result
-          return PLACEHOLDER
+          // No art found anywhere — generate a unique gradient with the track's initial letter
+          return makePlaceholder(t.name)
         })(),
       }))
       // Resolve all image lookups in parallel
       const resolved = await Promise.allSettled(items.map(i => i.imagePromise))
       recentlyPlayed = items.map((i, idx) => {
-        const value = resolved[idx]?.status === 'fulfilled' ? resolved[idx].value : PLACEHOLDER
-        console.log(`[lastfm] image for "${i.track}" → ${value.startsWith('PLACEHOLDER') || value.includes('noimage') ? '(placeholder)' : '(resolved URL: ' + value + ')'}`)
+        const value = resolved[idx]?.status === 'fulfilled' ? resolved[idx].value : makePlaceholder(i.track)
+        console.log(`[lastfm] image for "${i.track}" → ${value.includes('data:image') ? '(gradient placeholder)' : `(resolved URL: ${value})`}`)
         return {
-          image: value || PLACEHOLDER,
+          image: value || makePlaceholder(i.track),
           text: i.track,
         }
       })
@@ -235,6 +272,20 @@ export default function useLastFmData(username) {
     // Top artists — limited to 5 max for the component's layout
     const rawArtists = normalizeTopArtists(artistsData) || []
     const topArtistsCapped = rawArtists.slice(0, 5)
+
+    // Build gallery data for the top-artists carousel with high-quality images from Wikipedia
+    let topArtistsGallery = []
+    if (topArtistsCapped.length) {
+      const promises = topArtistsCapped.map(a => ({
+        name: a.name,
+        imgPromise: fetchArtistImage(a.name),
+      }))
+      const resolved = await Promise.allSettled(promises.map(p => p.imgPromise))
+      topArtistsGallery = promises.map((p, idx) => {
+        const value = resolved[idx]?.status === 'fulfilled' ? resolved[idx].value : null
+        return { name: p.name, image: value || PLACEHOLDER }
+      })
+    }
 
     let dominantArtist = { ...mockDominantArtist }
     let secondArtist = { ...mockSecondArtist }
@@ -286,6 +337,7 @@ export default function useLastFmData(username) {
       listeningByHour,
       listeningByWeekday,
       topArtists: topArtistsCapped,
+      topArtistsGallery,
       dominantArtist,
       secondArtist,
       mostPlayedTrack,

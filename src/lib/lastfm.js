@@ -49,33 +49,45 @@ export function pickImg(arr) {
 
 /** Search iTunes for album artwork by track name + artist. Returns image URL or null. */
 export async function fetchAlbumArt(trackName, artistName) {
-  const term = encodeURIComponent(`${trackName} ${artistName}`)
+  // If we have an artist, always try a targeted search first: "artist" is the most reliable identifier.
+  // Broad track names like "Society" / "Embers" will match dozens of songs otherwise.
+  const hasArtist = !!artistName
 
-  // Try iTunes first
-  try {
-    const itunesUrl = `https://itunes.apple.com/search?term=${term}&entity=song&limit=3`
-    const res = await fetch(itunesUrl)
-    if (res.ok) {
-      const json = await res.json()
-      if (json?.results?.length) {
-        console.log(`[lastfm] iTunes art for "${trackName}" by "${artistName}": ${json.results.length} result(s)`)
-        // Prefer exact artist match; fall back to first result
-        const hit = json.results.find(r => r.artistName === artistName) ?? json.results[0]
-        const url100 = hit?.artworkUrl100 || hit?.artworkUrl60
-        if (url100) {
-          // Use the URL as-is — Apple CDN URLs already include a size suffix (e.g. /100x100bb.jpg).
-          // The iTunes Search API provides images at their best available resolution;
-          // requesting larger sizes returns 404 since the original upload may not be that big.
-          console.log(`[lastfm]   → ${url100}`)
-          return url100
-        }
-      }
+  // Strategy 1: search with exact artist (most specific — avoids matching random songs with same name)
+  if (hasArtist) {
+    try {
+      const artUrl = await searchiTunes(artistName)
+      if (artUrl) return artUrl
+    } catch (err) {
+      console.warn(`[lastfm] iTunes search by artist failed for "${artistName}":`, err.message)
     }
-  } catch (err) {
-    console.warn(`[lastfm] iTunes art fetch failed for "${trackName}":`, err.message)
   }
 
-  // Fallback: try Last.fm album search API for the artwork URL
+  // Strategy 2: broad search with both track + artist (always useful as fallback)
+  {
+    const term = encodeURIComponent(`${trackName} ${artistName}`)
+    try {
+      const itunesUrl = `https://itunes.apple.com/search?term=${term}&entity=song&limit=3`
+      const res = await fetch(itunesUrl)
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.results?.length) {
+          console.log(`[lastfm] iTunes art for "${trackName}" by "${artistName}": ${json.results.length} result(s)`)
+          // Prefer exact artist match; fall back to first result
+          const hit = json.results.find(r => r.artistName === artistName) ?? json.results[0]
+          const url100 = hit?.artworkUrl100 || hit?.artworkUrl60
+          if (url100) {
+            console.log(`[lastfm]   → ${url100}`)
+            return url100
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[lastfm] iTunes art fetch failed for "${trackName}":`, err.message)
+    }
+  }
+
+  // Strategy 3: Last.fm album search as a last resort
   if (artistName && trackName) {
     const lfUrl = `${BASE}?method=album.search&format=json&api_key=${import.meta.env.VITE_LASTFM_API_KEY || ''}&album=${encodeURIComponent(trackName)}&artist=${encodeURIComponent(artistName)}`
     try {
@@ -84,7 +96,6 @@ export async function fetchAlbumArt(trackName, artistName) {
         const json = await res.json()
         const matches = json?.albummatches?.album
         if (Array.isArray(matches) && matches.length) {
-          // Use the album image from Last.fm search results
           for (const a of matches) {
             if (a?.image) {
               const art = pickImg(a.image)
@@ -102,6 +113,73 @@ export async function fetchAlbumArt(trackName, artistName) {
   }
 
   console.log(`[lastfm] No album art found for "${trackName}" by "${artistName}"`)
+  return null
+}
+
+/** Search iTunes for any album/artwork by artist name. Returns image URL or null. */
+async function searchiTunes(artistName) {
+  const term = encodeURIComponent(artistName)
+  const url = `https://itunes.apple.com/search?term=${term}&entity=album&limit=1`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    if (json?.results?.length) {
+      const url60 = json.results[0]?.artworkUrl60
+      if (url60) return url60 // Apple CDN URL as-is, don't resize
+    }
+  } catch (err) {
+    console.warn(`[lastfm] iTunes artist search failed for "${artistName}":`, err.message)
+  }
+  return null
+}
+
+/** Fetch a high-quality image for an artist/band.
+ * Uses Wikipedia's MediaWiki API to find the artist's portrait/photo. */
+export async function fetchArtistImage(artistName) {
+  try {
+    // First try Wikipedia page description API — returns thumbnail if the page has one
+    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(artistName)}`
+    const res = await fetch(wikiUrl)
+    if (res.ok) {
+      const json = await res.json()
+      // Wikipedia REST API returns a 'thumbnail' object with the source URL
+      if (json?.thumbnail?.source) {
+        // Wikipedia's thumbnail is small (~200-400px). Get the original by replacing size.
+        const origUrl = json.thumbnail.source.replace('/320-', '/1000-')
+        return origUrl
+      }
+      // If thumbnail exists but no source, check for 'description' to confirm a valid match
+      if (json?.description) {
+        console.log(`[lastfm] Wikipedia summary for "${artistName}": ${json.description}`)
+      }
+    }
+  } catch (err) {
+    console.warn(`[lastfm] Wiki search failed for "${artistName}":`, err.message)
+  }
+
+  // Fallback: try Wikipedia full page API to extract the first image from the infobox
+  if (artistName && artistName.length > 2) {
+    try {
+      const rawUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artistName)}&prop=images&format=json&origin=*`
+      const res = await fetch(rawUrl)
+      if (res.ok) {
+        const json = await res.json()
+        const pages = json?.query?.pages
+        if (pages) {
+          // Get the first non-disambiguation page
+          for (const [, page] of Object.entries(pages)) {
+            if (page.title && !page.title.includes(':')) {
+              return null // No thumbnail on this page — fall back to placeholder
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[lastfm] Wiki full page failed for "${artistName}":`, err.message)
+    }
+  }
+
   return null
 }
 

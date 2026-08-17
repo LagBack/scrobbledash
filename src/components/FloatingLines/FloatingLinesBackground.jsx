@@ -1,12 +1,9 @@
 import FloatingLines from './FloatingLines'
-import AccordionGallery from '../AccordionGallery/AccordionGallery'
-import '../AccordionGallery/AccordionGallery.css'
 import FunStatsSection from '../FunStatsSection/FunStatsSection'
 import '../FunStatsSection/FunStatsSection.css'
 import './FloatingLinesBackground.css'
 
 export default function FloatingLinesBackground({
-  topArtists,
   dominantArtist,
   secondArtist,
   mostPlayedTrack,
@@ -31,30 +28,6 @@ export default function FloatingLinesBackground({
       <div className="floating-lines__fade-bottom" aria-hidden="true" />
 
       <div className="floating-lines__content">
-        <section className="artists-section">
-          <div className="artists-section__content">
-            <h2 className="artists-section__title">Top Artists</h2>
-            <AccordionGallery
-              items={topArtists.map(artist => ({
-                image: artist.image,
-                label: `${artist.name} · ${artist.plays} plays`,
-                alt: artist.name
-              }))}
-              defaultIndex={2}
-              expandRatio={0.52}
-              trigger="hover"
-              accentColor="#c1121f"
-              overlayColor="#0a0a0a"
-              textColor="#ffffff"
-              height={460}
-              gap={10}
-              radius={16}
-              grayscale={true}
-              showLabels={true}
-            />
-          </div>
-        </section>
-
         <FunStatsSection
           dominantArtist={dominantArtist}
           secondArtist={secondArtist}
