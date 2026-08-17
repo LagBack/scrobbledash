@@ -1,6 +1,11 @@
+import { useState } from 'react'
 import './FunStatsSection.css'
 
+const FALLBACK = 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/no-image-available-symbol-300x300.png/300px-no-image-available-symbol-300x300.png'
+
 export default function FunStatsSection({ stats, dominantArtist, secondArtist, mostPlayedTrack, dominantRatio }) {
+  const [imgSrc, setImgSrc] = useState(mostPlayedTrack.cover || FALLBACK)
+
   return (
     <section className="fun-stats">
       <div className="fun-stats__inner">
@@ -34,9 +39,10 @@ export default function FunStatsSection({ stats, dominantArtist, secondArtist, m
             <div className="fun-stats__track-content">
               <div className="fun-stats__track-art">
                 <img
-                  src={mostPlayedTrack.cover}
+                  src={imgSrc}
                   alt={`${mostPlayedTrack.track} cover`}
                   className="fun-stats__track-img"
+                  onError={() => setImgSrc(FALLBACK)}
                 />
               </div>
               <p className="fun-stats__track-title">{mostPlayedTrack.track}</p>

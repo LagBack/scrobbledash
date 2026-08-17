@@ -37,7 +37,7 @@ export const mostPlayedTrack = {
   track: 'Creep',
   artist: 'Radiohead',
   album: 'Pablo Honey',
-  cover: 'https://upload.wikimedia.org/wikipedia/en/9/1b/Pablo_Stone.jpg',
+  cover: 'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/d9/b8/36/d9b83691-1546-96a2-756d-c5fff6a25ebf/192641516245_Cover.jpg/100x100bb.jpg',
 }
 
 // Derived ratio for comparison display

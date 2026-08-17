@@ -8,6 +8,7 @@ import {
   fetchArtistTags,
   fetchArtistImage,
   pickImg,
+  fetchTrackInfo,
 } from './lastfm'
 import {
   user as mockUser,
@@ -221,40 +222,12 @@ export default function useLastFmData(username) {
       mockTotalScrobbles
     console.log('[lastfm] effective totalScrobbles:', effectiveTotalScrobbles)
 
-    // Recently played: prefer recenttracks — resolve real album art per-track
+    // Recently played — skip image fetching (no section renders it); keep track count for data completeness
     let recentlyPlayed = []
     if (recentData?.length) {
-      const items = recentData.slice(0, 12).map(t => ({
-        track: t.name,
-        // Last.fm API returns artist names in ['#text'], not '.name' — handle both
-        artistName: t.artist?.['#text'] ?? t.artist?.name ?? '',
-        mbid: t.mbid ?? '',
-        imagePromise: (async () => {
-          // First try Last.fm album image array (skip generic noimage placeholder)
-          const art = pickImg(t.album?.image)
-          if (art) return art
-          // Fallback: search iTunes for the track's album artwork
-          const artistName = t.artist?.['#text'] ?? t.artist?.name ?? ''
-          const result = await fetchAlbumArt(t.name, artistName)
-          if (result) return result
-          // No art found anywhere — generate a unique gradient with the track's initial letter
-          return makePlaceholder(t.name)
-        })(),
-      }))
-      // Resolve all image lookups in parallel
-      const resolved = await Promise.allSettled(items.map(i => i.imagePromise))
-      recentlyPlayed = items.map((i, idx) => {
-        const value = resolved[idx]?.status === 'fulfilled' ? resolved[idx].value : makePlaceholder(i.track)
-        console.log(`[lastfm] image for "${i.track}" → ${value.includes('data:image') ? '(gradient placeholder)' : `(resolved URL: ${value})`}`)
-        return {
-          image: value || makePlaceholder(i.track),
-          text: i.track,
-        }
-      })
+      recentlyPlayed = recentData.slice(0, 12).map(t => ({ text: t.name }))
     } else if (tracksData?.tracks) {
       recentlyPlayed = normalizeTopTracks(tracksData)
-    } else {
-      recentlyPlayed = []
     }
 
     // Top albums — filtered to only those with valid images (no empty spots)
@@ -304,17 +277,46 @@ export default function useLastFmData(username) {
       secondArtist = { name: topArtistsCapped[1].name, plays: topArtistsCapped[1].plays }
     }
 
-    // Most played track
+    // Most played track — use Last.fm album art first, fall back through multiple sources
     let mostPlayedTrack = { ...mockMostPlayedTrack }
     if (tracksData?.tracks?.[0]) {
       const t = tracksData.tracks[0]
+
+      // Try Last.fm's own album data first (for the specific track)
+      const artFromLfm = pickImg(t.album?.image)
+      let cover = artFromLfm
+      let infoTitle = t.album?.title ?? ''
+
+      if (!cover) {
+        const artistName = t.artist?.name ?? ''
+        const trackTitle = t.name
+        console.log(`[lastfm] No album art — fetching from Last.fm: "${trackTitle}" by "${artistName}"`)
+        try {
+          const info = await fetchTrackInfo(trackTitle, artistName)
+          if (info?.image) cover = info.image
+          if (info?.title) infoTitle = info.title
+        } catch {
+          // will use gradient below
+        }
+      }
+
+      // Final fallback: unique gradient placeholder keyed to track name
+      if (!cover) {
+        console.log(`[lastfm] All lookups failed for "${t.name}" → gradient placeholder`)
+        cover = makePlaceholder(t.name)
+      } else {
+        console.log(`[lastfm] Resolved album art for "${t.name}": ${cover.substring(0, 80)}...`, cover.startsWith('data:') ? '(gradient)' : '(URL)')
+      }
+
       mostPlayedTrack = {
         track: t.name,
         artist: t.artist?.name ?? '',
-        album: t.album?.title ?? '',
-        cover: pickImg(t.album?.image) || PLACEHOLDER,
+        album: infoTitle,
+        cover,
         plays: parseInt(t.playcount, 10) || parseInt(t['@attr']?.playcount, 10) || 0,
       }
+    } else {
+      console.log('[lastfm] mostPlayedTrack kept from mock data')
     }
 
     // Weekly genre analysis from top tracks' artists' tags
@@ -325,7 +327,7 @@ export default function useLastFmData(username) {
       if (genre) weeklyGenre = genre
     }
 
-    console.log('[lastfm] recentlyPlayed images:', recentlyPlayed.length, 'valid validImgUrls:', recentlyPlayed.filter(p => isValidImgUrl(p.image)).length)
+    console.log('[lastfm] mostPlayedTrack cover:', mostPlayedTrack.cover?.startsWith('data:') ? '(gradient)' : mostPlayedTrack.cover)
     console.log('[lastfm] topAlbums images:', topAlbums.length)
 
     setData({

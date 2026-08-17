@@ -47,89 +47,21 @@ export function pickImg(arr) {
   return ''
 }
 
-/** Search iTunes for album artwork by track name + artist. Returns image URL or null. */
-export async function fetchAlbumArt(trackName, artistName) {
-  // If we have an artist, always try a targeted search first: "artist" is the most reliable identifier.
-  // Broad track names like "Society" / "Embers" will match dozens of songs otherwise.
-  const hasArtist = !!artistName
-
-  // Strategy 1: search with exact artist (most specific — avoids matching random songs with same name)
-  if (hasArtist) {
-    try {
-      const artUrl = await searchiTunes(artistName)
-      if (artUrl) return artUrl
-    } catch (err) {
-      console.warn(`[lastfm] iTunes search by artist failed for "${artistName}":`, err.message)
-    }
-  }
-
-  // Strategy 2: broad search with both track + artist (always useful as fallback)
-  {
-    const term = encodeURIComponent(`${trackName} ${artistName}`)
-    try {
-      const itunesUrl = `https://itunes.apple.com/search?term=${term}&entity=song&limit=3`
-      const res = await fetch(itunesUrl)
-      if (res.ok) {
-        const json = await res.json()
-        if (json?.results?.length) {
-          console.log(`[lastfm] iTunes art for "${trackName}" by "${artistName}": ${json.results.length} result(s)`)
-          // Prefer exact artist match; fall back to first result
-          const hit = json.results.find(r => r.artistName === artistName) ?? json.results[0]
-          const url100 = hit?.artworkUrl100 || hit?.artworkUrl60
-          if (url100) {
-            console.log(`[lastfm]   → ${url100}`)
-            return url100
-          }
-        }
-      }
-    } catch (err) {
-      console.warn(`[lastfm] iTunes art fetch failed for "${trackName}":`, err.message)
-    }
-  }
-
-  // Strategy 3: Last.fm album search as a last resort
-  if (artistName && trackName) {
-    const lfUrl = `${BASE}?method=album.search&format=json&api_key=${import.meta.env.VITE_LASTFM_API_KEY || ''}&album=${encodeURIComponent(trackName)}&artist=${encodeURIComponent(artistName)}`
-    try {
-      const res = await fetch(lfUrl)
-      if (res.ok) {
-        const json = await res.json()
-        const matches = json?.albummatches?.album
-        if (Array.isArray(matches) && matches.length) {
-          for (const a of matches) {
-            if (a?.image) {
-              const art = pickImg(a.image)
-              if (art) {
-                console.log(`[lastfm]   → fallback via Last.fm search: ${art}`)
-                return art
-              }
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn(`[lastfm] Last.fm album search failed for "${trackName}":`, err.message)
-    }
-  }
-
-  console.log(`[lastfm] No album art found for "${trackName}" by "${artistName}"`)
-  return null
-}
-
-/** Search iTunes for any album/artwork by artist name. Returns image URL or null. */
-async function searchiTunes(artistName) {
-  const term = encodeURIComponent(artistName)
-  const url = `https://itunes.apple.com/search?term=${term}&entity=album&limit=1`
+/** Fetch track info from Last.fm — returns the album name and its image URLs. */
+export async function fetchTrackInfo(trackTitle, artistName) {
+  const url = `${BASE}?method=track.getInfo&format=json&api_key=${import.meta.env.VITE_LASTFM_API_KEY}&artist=${encodeURIComponent(artistName)}&track=${encodeURIComponent(trackTitle)}`
   try {
     const res = await fetch(url)
     if (!res.ok) return null
     const json = await res.json()
-    if (json?.results?.length) {
-      const url60 = json.results[0]?.artworkUrl60
-      if (url60) return url60 // Apple CDN URL as-is, don't resize
+    const album = json?.track?.album
+    if (album?.title) {
+      const images = pickImg(album.image) || ''
+      console.log(`[lastfm] track.getInfo → "${album.title}" art: ${images ? 'yes' : 'no'}`)
+      return { title: album.title, image: images }
     }
   } catch (err) {
-    console.warn(`[lastfm] iTunes artist search failed for "${artistName}":`, err.message)
+    console.warn(`[lastfm] track.getInfo failed for "${trackTitle}":`, err.message)
   }
   return null
 }
