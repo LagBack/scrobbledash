@@ -418,33 +418,71 @@ export default function FloatingLines({
     }
 
     let raf = 0;
+    let isVisible = true;
+    let isPageVisible = !document.hidden;
+
+    // rAF loop — pauses when off-screen or tab hidden (no scene destruction)
     const renderLoop = () => {
       if (!active) return;
-
       uniforms.iTime.value = clock.getElapsedTime();
 
-      if (interactive) {
-        currentMouseRef.current.lerp(targetMouseRef.current, mouseDamping);
-        uniforms.iMouse.value.copy(currentMouseRef.current);
-
-        currentInfluenceRef.current += (targetInfluenceRef.current - currentInfluenceRef.current) * mouseDamping;
-        uniforms.bendInfluence.value = currentInfluenceRef.current;
-      }
+      const ease = 1 - Math.exp(-mouseDamping * 60 / 60);
+      currentMouseRef.current.x += (targetMouseRef.current.x - currentMouseRef.current.x) * ease;
+      currentMouseRef.current.y += (targetMouseRef.current.y - currentMouseRef.current.y) * ease;
+      currentInfluenceRef.current += (targetInfluenceRef.current - currentInfluenceRef.current) * ease;
 
       if (parallax) {
-        currentParallaxRef.current.lerp(targetParallaxRef.current, mouseDamping);
-        uniforms.parallaxOffset.value.copy(currentParallaxRef.current);
+        currentParallaxRef.current.x += (targetParallaxRef.current.x - currentParallaxRef.current.x) * ease;
+        currentParallaxRef.current.y += (targetParallaxRef.current.y - currentParallaxRef.current.y) * ease;
+      }
+
+      uniforms.iMouse.value.set(currentMouseRef.current.x, currentMouseRef.current.y);
+      uniforms.bendInfluence.value = currentInfluenceRef.current;
+      if (parallax) {
+        uniforms.parallaxOffset.value.set(currentParallaxRef.current.x, currentParallaxRef.current.y);
+      } else {
+        uniforms.parallaxOffset.value.set(0, 0);
       }
 
       renderer.render(scene, camera);
       raf = requestAnimationFrame(renderLoop);
     };
-    renderLoop();
+
+    const tryStart = () => {
+      if (active && isVisible && isPageVisible && raf === 0) {
+        renderLoop();
+      }
+    };
+    const tryStop = () => {
+      if (raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        isVisible ? tryStart() : tryStop();
+      },
+      { threshold: 0 }
+    );
+    io.observe(container);
+
+    const onVisibility = () => {
+      isPageVisible = !document.hidden;
+      isPageVisible ? tryStart() : tryStop();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    tryStart();
 
     return () => {
       active = false;
 
-      cancelAnimationFrame(raf);
+      tryStop();
+      io.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
 
       if (ro) ro.disconnect();
 

@@ -154,9 +154,12 @@ export async function fetchTopTracks(username) {
   }
 }
 
-/** Fetch recent tracks for a user (up to 200). */
-export async function fetchRecentTracks(username) {
-  const url = get('user.getRecentTracks') + `&user=${encodeURIComponent(username)}&limit=200`
+/** Fetch recent tracks for a user. Accepts optional time-range params (Unix timestamps) to limit the window. */
+export async function fetchRecentTracks(username, { from, to } = {}) {
+  const base = get('user.getRecentTracks') + `&user=${encodeURIComponent(username)}&limit=200`
+  let url = base
+  if (from) url += `&from=${from}`
+  if (to) url += `&to=${to}`
   try {
     const res = await fetch(url)
     if (!res.ok) return null

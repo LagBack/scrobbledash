@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import { useInView } from "framer-motion";
 import {
   Clock,
   Mesh,
@@ -234,7 +233,7 @@ export default function EtherWavesBackground({
   className = "",
 }) {
   const containerRef = useRef(null);
-  const isInView = useInView(containerRef);
+  const isVisibleRef = useRef(true);
 
   const targetMouseRef = useRef(new Vector2(-1000, -1000));
   const currentMouseRef = useRef(new Vector2(-1000, -1000));
@@ -350,36 +349,56 @@ export default function EtherWavesBackground({
       container.addEventListener("pointerleave", handlePointerLeave);
     }
 
+    // rAF loop — pauses when off-screen or tab hidden (no scene destruction)
     let rafId = 0;
+    let isPageVisible = !document.hidden;
+
     const renderLoop = () => {
       if (!active) return;
+      uniforms.iTime.value = clock.getElapsedTime();
 
-      if (isInView) {
-        uniforms.iTime.value = clock.getElapsedTime();
+      // Smooth mouse interpolation
+      const ease = 1 - Math.exp(-mouseDamping * 60 / 60);
+      currentMouseRef.current.x += (targetMouseRef.current.x - currentMouseRef.current.x) * ease;
+      currentMouseRef.current.y += (targetMouseRef.current.y - currentMouseRef.current.y) * ease;
+      currentInfluenceRef.current += (targetInfluenceRef.current - currentInfluenceRef.current) * ease;
 
-        if (interactive) {
-          currentMouseRef.current.lerp(targetMouseRef.current, mouseDamping);
-          uniforms.iMouse.value.copy(currentMouseRef.current);
-          currentInfluenceRef.current += (targetInfluenceRef.current - currentInfluenceRef.current) * mouseDamping;
-          uniforms.bendInfluence.value = currentInfluenceRef.current;
-        }
-
-        if (parallax) {
-          currentParallaxRef.current.lerp(targetParallaxRef.current, mouseDamping);
-          uniforms.parallaxOffset.value.copy(currentParallaxRef.current);
-        }
-
-        renderer.render(scene, camera);
+      if (parallax) {
+        currentParallaxRef.current.x += (targetParallaxRef.current.x - currentParallaxRef.current.x) * ease;
+        currentParallaxRef.current.y += (targetParallaxRef.current.y - currentParallaxRef.current.y) * ease;
       }
 
+      uniforms.iMouse.value.set(currentMouseRef.current.x, currentMouseRef.current.y);
+      uniforms.bendInfluence.value = currentInfluenceRef.current;
+      if (parallax) {
+        uniforms.parallaxOffset.value.set(currentParallaxRef.current.x, currentParallaxRef.current.y);
+      } else {
+        uniforms.parallaxOffset.value.set(0, 0);
+      }
+
+      renderer.render(scene, camera);
       rafId = requestAnimationFrame(renderLoop);
     };
 
-    renderLoop();
+    const tryStart = () => { if (isVisibleRef.current && isPageVisible && rafId === 0) rafId = requestAnimationFrame(renderLoop); };
+    const tryStop = () => { if (rafId !== 0) { cancelAnimationFrame(rafId); rafId = 0; } };
+
+    const ioObs = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; isVisibleRef.current ? tryStart() : tryStop(); },
+      { threshold: 0 }
+    );
+    ioObs.observe(container);
+
+    const onVisibility = () => { isPageVisible = !document.hidden; isPageVisible ? tryStart() : tryStop(); };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    tryStart();
 
     return () => {
       active = false;
-      cancelAnimationFrame(rafId);
+      tryStop();
+      ioObs.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       resizeObserver.disconnect();
 
       if (interactive) {
@@ -399,7 +418,7 @@ export default function EtherWavesBackground({
   }, [
     linesGradient, density, animationSpeed, interactive,
     bendRadius, bendStrength, mouseDamping, parallax, parallaxStrength,
-    transparentBg, isInView,
+    transparentBg,
   ]);
 
   return (

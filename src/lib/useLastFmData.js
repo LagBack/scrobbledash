@@ -1,15 +1,218 @@
-import { useState, useEffect, useCallback } from 'react'
-import {
-  fetchUserInfo,
-  fetchTopTracks,
-  fetchRecentTracks,
-  fetchTopAlbums,
-  fetchTopArtists,
-  fetchArtistTags,
-  fetchArtistImage,
-  pickImg,
-  fetchTrackInfo,
-} from './lastfm'
+/**
+ * Last.fm Public Web API — browser-side fetch layer.
+ * All functions return Promise<T | null>; errors are never thrown.
+ */
+
+const BASE = 'http://ws.audioscrobbler.com/2.0'
+const LIMIT = 50 // Top tracks limit (lastfm max is 50)
+
+function get(key) {
+  const params = new URLSearchParams({ method: key, format: 'json' })
+  const apiKey = import.meta.env.VITE_LASTFM_API_KEY
+  if (apiKey) params.set('api_key', apiKey)
+  return `${BASE}?${params.toString()}`
+}
+
+// ── helpers ───────────────────────────────────────
+
+/** Extract largest image URL from last.fm image array, or null. */
+export function img(arr) {
+  if (!Array.isArray(arr)) return ''
+  // last.fm images are ordered small → medium → large → extralarge
+  const best = arr[arr.length - 1]
+  return typeof best === 'string' ? best : (best?.['#text'] ?? '')
+}
+
+// ── API functions ────────────────────────────────
+
+/** Filename of the generic Last.fm no-image placeholder icon. */
+const NOIMAGE_ID = '2a96cbd8b46e442fc41c2b86b821562f.png'
+
+/** Resolve a Last.fm album image array into the largest real URL, or empty string if none. */
+export function pickImg(arr) {
+  if (!arr || typeof arr === 'string') return ''
+  if (Array.isArray(arr)) {
+    for (let i = arr.length - 1; i >= 0; i--) {
+      const entry = arr[i]
+      const url = typeof entry === 'string' ? entry : (entry?.['#text'] ?? '')
+      if (url && !url.includes(NOIMAGE_ID) && (url.startsWith('http') || url.startsWith('//'))) {
+        return url.startsWith('//') ? `https:${url}` : url
+      }
+    }
+  }
+  if (typeof arr === 'object') {
+    const url = arr.url ?? arr.src ?? arr.href ?? ''
+    if (typeof url === 'string' && url.startsWith('http') && !url.includes(NOIMAGE_ID)) return url
+  }
+  return ''
+}
+
+/** Fetch track info from Last.fm — returns the album name and its image URLs. */
+export async function fetchTrackInfo(trackTitle, artistName) {
+  const url = `${BASE}?method=track.getInfo&format=json&api_key=${import.meta.env.VITE_LASTFM_API_KEY}&artist=${encodeURIComponent(artistName)}&track=${encodeURIComponent(trackTitle)}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const album = json?.track?.album
+    if (album?.title) {
+      const images = pickImg(album.image) || ''
+      return { title: album.title, image: images }
+    }
+  } catch (err) {
+    console.warn(`[lastfm] track.getInfo failed for "${trackTitle}":`, err.message)
+  }
+  return null
+}
+
+/** Fetch a high-quality image for an artist/band.
+ * Uses Wikipedia's MediaWiki API to find the artist's portrait/photo. */
+export async function fetchArtistImage(artistName) {
+  try {
+    // First try Wikipedia page description API — returns thumbnail if the page has one
+    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(artistName)}`
+    const res = await fetch(wikiUrl)
+    if (res.ok) {
+      const json = await res.json()
+      // Wikipedia REST API returns a 'thumbnail' object with the source URL
+      if (json?.thumbnail?.source) {
+        // Wikipedia's thumbnail is small (~200-400px). Get the original by replacing size.
+        const origUrl = json.thumbnail.source.replace('/320-', '/1000-')
+        return origUrl
+      }
+    }
+  } catch (err) {
+    console.warn(`[lastfm] Wiki search failed for "${artistName}":`, err.message)
+  }
+
+  // Fallback: try Wikipedia full page API to extract the first image from the infobox
+  if (artistName && artistName.length > 2) {
+    try {
+      const rawUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artistName)}&prop=images&format=json&origin=*`
+      const res = await fetch(rawUrl)
+      if (res.ok) {
+        const json = await res.json()
+        const pages = json?.query?.pages
+        if (pages) {
+          // Get the first non-disambiguation page
+          for (const [, page] of Object.entries(pages)) {
+            if (page.title && !page.title.includes(':')) {
+              return null // No thumbnail on this page — fall back to placeholder
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[lastfm] Wiki full page failed for "${artistName}":`, err.message)
+    }
+  }
+
+  return null
+}
+
+/** Fetch basic user info (name, avatar, total scrobbles). */
+export async function fetchUserInfo(username) {
+  const url = get('user.getInfo') + `&user=${encodeURIComponent(username)}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const user = json?.user
+    if (!user) return null
+    return {
+      name: user.name || username,
+      image: img(user.image),
+      // user.playcount is returned by the free/public API for all profiles
+      scrobbles: parseInt(user.playcount ?? user.stats?.scrobbles, 10) || 0,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Fetch top tracks for a user. */
+export async function fetchTopTracks(username) {
+  const url = get('user.getTopTracks') + `&user=${encodeURIComponent(username)}&limit=${LIMIT}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const toptracks = json?.toptracks
+    if (!toptracks || !Array.isArray(toptracks.track)) return null
+    return {
+      tracks: toptracks.track,
+      totalScrobbles: parseInt(toptracks['@attr']?.totalScrobbles, 10) || 0,
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Fetch recent tracks for a user. Accepts optional time-range params (Unix timestamps) to limit the window. */
+export async function fetchRecentTracks(username, { from, to } = {}) {
+  const base = get('user.getRecentTracks') + `&user=${encodeURIComponent(username)}&limit=200`
+  let url = base
+  if (from) url += `&from=${from}`
+  if (to) url += `&to=${to}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const recenttracks = json?.recenttracks?.track
+    if (!Array.isArray(recenttracks)) return null
+    return recenttracks
+  } catch {
+    return null
+  }
+}
+
+/** Fetch top albums for a user. */
+export async function fetchTopAlbums(username) {
+  const url = get('user.getTopAlbums') + `&user=${encodeURIComponent(username)}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const topalbums = json?.topalbums
+    if (!topalbums || !Array.isArray(topalbums.album)) return null
+    return topalbums.album
+  } catch {
+    return null
+  }
+}
+
+/** Fetch top artists for a user. */
+export async function fetchTopArtists(username) {
+  const url = get('user.getTopArtists') + `&user=${encodeURIComponent(username)}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const topartists = json?.topartists
+    if (!topartists || !Array.isArray(topartists.artist)) return null
+    return topartists.artist
+  } catch {
+    return null
+  }
+}
+
+/** Fetch genre tags for a specific artist (used for genre analysis). */
+export async function fetchArtistTags(artistName) {
+  const url = get('artist.getInfo') + `&artist=${encodeURIComponent(artistName)}`
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const json = await res.json()
+    const artist = json?.artist
+    return artist?.tags?.tag?.map(t => t.name.toLowerCase()) ?? []
+  } catch {
+    return []
+  }
+}
+
+// ── hook ──────────────────────────────────────────
+
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   user as mockUser,
   recentlyPlayed as mockRecentlyPlayed,
@@ -71,7 +274,7 @@ function normalizeTopTracks(topTracksResp) {
   if (!topTracksResp?.tracks) return []
   return topTracksResp.tracks
     .map(t => ({
-      image: pickImg(t.album?.image) || PLACEHOLDER,
+      image: pickImg(t.album?.image) || makePlaceholder(t.name),
       text: t.name,
     }))
 }
@@ -79,13 +282,12 @@ function normalizeTopTracks(topTracksResp) {
 /** Normalize top albums into the shape our DriftWall expects. */
 function normalizeTopAlbums(albumsResp) {
   if (!Array.isArray(albumsResp)) return []
-  // Filter out albums with no valid image to prevent empty spots in the gallery
-  return albumsResp
-    .map(a => ({
-      image: pickImg(a.image) || PLACEHOLDER,
-      title: `${a.artist?.name ?? ''} — ${a.name ?? ''}`,
-    }))
-    .filter(item => isValidImgUrl(item.image))
+  // Keep every album — use gradient placeholder for missing images so
+  // no positions go blank (filtering previously caused unpredictable gaps)
+  return albumsResp.map(a => ({
+    image: pickImg(a.image) || makePlaceholder(`${a.artist?.name ?? 'Unknown'} — ${a.name ?? 'Unknown Album'}`),
+    title: `${a.artist?.name ?? 'Unknown Artist'} — ${a.name ?? 'Unknown Album'}`,
+  }))
 }
 
 /** Normalize top artists into the shape our FloatingLinesBackground expects. */
@@ -94,20 +296,30 @@ function normalizeTopArtists(artistsResp) {
   return artistsResp.map(a => ({
     name: a.name,
     plays: parseInt(a.playcount, 10) || 0,
-    image: pickImg(a.image) || PLACEHOLDER,
+    image: pickImg(a.image) || makePlaceholder(a.name),
   }))
 }
 
 /** Analyze genres from a list of artist names. Returns the most frequent genre or null. */
+const artistTagCache = new Map()
+
 async function analyzeGenres(artistNames) {
   if (!artistNames.length) return null
 
-  // Count genres across all artists' tags
+  // Count genres across all artists' tags (parallel fetch with cache)
   const genreCounts = new Map()
-  for (const name of artistNames.slice(0, 30)) {
-    const tags = await fetchArtistTags(name)
-    if (tags) {
-      for (const tag of tags) {
+  const fetched = await Promise.allSettled(
+    artistNames.slice(0, 30).map(async (name) => {
+      if (artistTagCache.has(name)) return artistTagCache.get(name)
+      const tags = await fetchArtistTags(name)
+      if (tags) artistTagCache.set(name, tags)
+      return tags
+    })
+  )
+
+  for (const result of fetched) {
+    if (result.status === 'fulfilled' && result.value) {
+      for (const tag of result.value) {
         genreCounts.set(tag, (genreCounts.get(tag) || 0) + 1)
       }
     }
@@ -149,6 +361,7 @@ export default function useLastFmData(username) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const currentFetchRef = useRef(0)
 
   const hasApiKey = Boolean(import.meta.env.VITE_LASTFM_API_KEY)
 
@@ -173,7 +386,7 @@ export default function useLastFmData(username) {
         listeningByHour: [...mockListeningByHour],
         listeningByWeekday: [...mockListeningByWeekday],
         topArtists: mockTopArtists.map(a => ({ name: a.name, plays: a.plays, image: a.image })),
-        topArtistsGallery: mockTopArtists.map(a => ({ name: a.name, image: a.image || PLACEHOLDER })),
+        topArtistsGallery: mockTopArtists.map(a => ({ name: a.name, image: a.image || makePlaceholder(a.name) })),
         dominantArtist: { ...mockDominantArtist },
         secondArtist: { ...mockSecondArtist },
         mostPlayedTrack: { ...mockMostPlayedTrack },
@@ -182,7 +395,20 @@ export default function useLastFmData(username) {
       return
     }
 
-    // Fetch everything in parallel
+    // Race-condition guard: cancel previous in-flight fetch
+    const thisFetch = ++currentFetchRef.current
+
+    // Fetch everything in parallel — use a 7-day window so the busiest-days
+    // chart always covers all 7 weekdays, not just the partial week the user
+    // has scrobbled so far.
+    const now = new Date()
+    const from = new Date(now)
+    from.setDate(from.getDate() - 7)
+    const fetchRecentTracksWithRange = () => fetchRecentTracks(user, {
+      from: Math.floor(from.getTime() / 1000),
+      to: Math.floor(now.getTime() / 1000),
+    })
+
     const [
       info,
       topTracks,
@@ -192,10 +418,13 @@ export default function useLastFmData(username) {
     ] = await Promise.allSettled([
       fetchUserInfo(user),
       fetchTopTracks(user),
-      fetchRecentTracks(user),
+      fetchRecentTracksWithRange(),
       fetchTopAlbums(user),
       fetchTopArtists(user),
     ])
+
+    // Discard stale result if a newer fetch started while we were waiting
+    if (currentFetchRef.current !== thisFetch) return
 
     // ── Extract results (null on rejection) ──
     const infoData = info.status === 'fulfilled' ? info.value : null
@@ -204,23 +433,16 @@ export default function useLastFmData(username) {
     const albumsData = topAlbumsResp.status === 'fulfilled' ? topAlbumsResp.value : null
     const artistsData = topArtistsResp.status === 'fulfilled' ? topArtistsResp.value : null
 
-    console.log('[lastfm] userInfo:', infoData)
-    console.log('[lastfm] topTracks totalScrobbles:', tracksData?.totalScrobbles)
-    console.log('[lastfm] recentTracks count:', recentData?.length ?? 0)
-    console.log('[lastfm] albums:', albumsData?.length ?? 0, '| artists:', artistsData?.length ?? 0)
-
     // ── Build the data object with fallbacks ──
     const effectiveUser = infoData?.name || user
     // Try both sources for scrobbles; fall back to mock only if truly empty
     const infoScrobbles = infoData != null && infoData.scrobbles != null ? parseInt(infoData.scrobbles, 10) : NaN
     const tracksScrobbles = tracksData?.totalScrobbles != null ? parseInt(tracksData.totalScrobbles, 10) : NaN
-    console.log('[lastfm] info scrobbles:', infoScrobbles, '| tracks totalScrobbles:', tracksScrobbles)
 
     const effectiveTotalScrobbles =
       (infoScrobbles && infoScrobbles > 0) ? infoScrobbles :
       (!isNaN(tracksScrobbles) && tracksScrobbles > 0) ? tracksScrobbles :
       mockTotalScrobbles
-    console.log('[lastfm] effective totalScrobbles:', effectiveTotalScrobbles)
 
     // Recently played — skip image fetching (no section renders it); keep track count for data completeness
     let recentlyPlayed = []
@@ -256,7 +478,7 @@ export default function useLastFmData(username) {
       const resolved = await Promise.allSettled(promises.map(p => p.imgPromise))
       topArtistsGallery = promises.map((p, idx) => {
         const value = resolved[idx]?.status === 'fulfilled' ? resolved[idx].value : null
-        return { name: p.name, image: value || PLACEHOLDER }
+        return { name: p.name, image: value || makePlaceholder(p.name) }
       })
     }
 
@@ -290,7 +512,6 @@ export default function useLastFmData(username) {
       if (!cover) {
         const artistName = t.artist?.name ?? ''
         const trackTitle = t.name
-        console.log(`[lastfm] No album art — fetching from Last.fm: "${trackTitle}" by "${artistName}"`)
         try {
           const info = await fetchTrackInfo(trackTitle, artistName)
           if (info?.image) cover = info.image
@@ -302,10 +523,7 @@ export default function useLastFmData(username) {
 
       // Final fallback: unique gradient placeholder keyed to track name
       if (!cover) {
-        console.log(`[lastfm] All lookups failed for "${t.name}" → gradient placeholder`)
         cover = makePlaceholder(t.name)
-      } else {
-        console.log(`[lastfm] Resolved album art for "${t.name}": ${cover.substring(0, 80)}...`, cover.startsWith('data:') ? '(gradient)' : '(URL)')
       }
 
       mostPlayedTrack = {
@@ -315,8 +533,6 @@ export default function useLastFmData(username) {
         cover,
         plays: parseInt(t.playcount, 10) || parseInt(t['@attr']?.playcount, 10) || 0,
       }
-    } else {
-      console.log('[lastfm] mostPlayedTrack kept from mock data')
     }
 
     // Weekly genre analysis from top tracks' artists' tags
@@ -326,9 +542,6 @@ export default function useLastFmData(username) {
       const genre = await analyzeGenres(uniqueArtists)
       if (genre) weeklyGenre = genre
     }
-
-    console.log('[lastfm] mostPlayedTrack cover:', mostPlayedTrack.cover?.startsWith('data:') ? '(gradient)' : mostPlayedTrack.cover)
-    console.log('[lastfm] topAlbums images:', topAlbums.length)
 
     setData({
       user: { name: effectiveUser },

@@ -41,7 +41,6 @@ const DriftWall = ({
   grayscale = false,
   overlayColor = '#0a0a0a',
   className = '',
-  style
 }) => {
   const containerRef = useRef(null);
   const planeRef = useRef(null);
@@ -56,7 +55,7 @@ const DriftWall = ({
   const pointerDampedRef = useRef({ x: 0, y: 0 });
   const lastTsRef = useRef(null);
 
-  const [containerHeight, setContainerHeight] = useState(600);
+  const [containerHeight, setContainerHeight] = useState(560);
   const [activeId, setActiveId] = useState(null);
   const activeIdRef = useRef(null);
   const [reduced, setReduced] = useState(false);
@@ -219,15 +218,36 @@ const DriftWall = ({
       '--dw-gray': grayscale ? 1 : 0,
       '--dw-overlay': overlayColor,
       '--dw-edge': `${Math.max(0, (1 - fade) * 100)}%`,
-      ...style
     }),
-    [tileWidth, tileHeight, gap, radius, perspective, lift, dim, grayscale, overlayColor, fade, style]
+    [tileWidth, tileHeight, gap, radius, perspective, lift, dim, grayscale, overlayColor, fade]
   );
 
+  /** Fallback gradient used when an external image fails to load. */
+  const FALLBACK_IMAGE = useMemo(
+    () => {
+      // Generate a deterministic base64 placeholder similar to makePlaceholder in useLastFmData
+      const c = document.createElement('canvas')
+      c.width = 200; c.height = 132
+      const ctx = c.getContext('2d')
+      const grad = ctx.createLinearGradient(0, 0, 200, 132)
+      grad.addColorStop(0, '#1a1a2e')
+      grad.addColorStop(1, '#16213e')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, 200, 132)
+      return c.toDataURL('image/jpeg', 0.85)
+    },
+    []
+  )
+
   const renderTile = (item, id, colIndex) => {
+    const handleImageError = useCallback(e => {
+      e.currentTarget.src = FALLBACK_IMAGE
+      e.currentTarget.onerror = null // prevent infinite loop
+    }, [FALLBACK_IMAGE])
+
     const inner = (
       <span className="drift-wall__inner">
-        <img src={item.image} alt={item.title ?? ''} loading="lazy" decoding="async" draggable={false} />
+        <img src={item.image} alt={item.title ?? ''} loading="eager" decoding="async" draggable={false} onError={handleImageError} />
         <span className="drift-wall__overlay" aria-hidden="true" />
       </span>
     );

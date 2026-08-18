@@ -171,12 +171,31 @@ export default function RetroGrid({ className = '' }) {
       drawScanlines();
       drawVignette();
 
-      requestAnimationFrame(animate);
+      rafId = requestAnimationFrame(animate);
     };
 
-    animate();
+    let rafId = 0;
+    let isVisible = true;
+    let isPageVisible = !document.hidden;
+
+    const tryStart = () => { if (isVisible && isPageVisible && rafId === 0) rafId = requestAnimationFrame(animate); };
+    const tryStop = () => { if (rafId !== 0) { cancelAnimationFrame(rafId); rafId = 0; } };
+
+    const roObs = new IntersectionObserver(
+      ([entry]) => { isVisible = entry.isIntersecting; isVisible ? tryStart() : tryStop(); },
+      { threshold: 0 }
+    );
+    roObs.observe(canvas);
+
+    const onVisibility = () => { isPageVisible = !document.hidden; isPageVisible ? tryStart() : tryStop(); };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    tryStart();
 
     return () => {
+      tryStop();
+      roObs.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('resize', resizeCanvas);
     };
   }, []);

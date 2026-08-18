@@ -1,4 +1,5 @@
 import { Routes, Route, useSearchParams, useNavigate } from 'react-router-dom'
+import { useMemo, useCallback } from 'react'
 import Home from './pages/Home'
 import CircularGallery from './components/CircularGallery/CircularGallery'
 import DriftWall from './components/DriftWall/DriftWall'
@@ -47,6 +48,24 @@ function Dashboard() {
   const dominantRatio = (secondArtist.plays > 0)
     ? (dominantArtist.plays / secondArtist.plays).toFixed(1)
     : '0'
+
+  // ── Memoized derived data — prevents CircularGallery scene recreation & DriftWall recalc on every render ──
+  const topArtistsGalleryItems = useMemo(
+    () => topArtistsGallery.map(a => ({ image: a.image, text: `${a.name}` })),
+    [topArtistsGallery],
+  )
+
+  const driftWallAlbumItems = useMemo(
+    () => topAlbums.map(a => ({ image: a.image || a.cover, title: a.title })),
+    [topAlbums],
+  )
+
+  // Stable empty arrays — avoid allocating fresh arrays every render
+  const EMPTY_HOURS = useMemo(() => new Array(24).fill(0), [])
+  const EMPTY_DAYS = useMemo(() => new Array(7).fill(0), [])
+
+  // Stable callback for PageFooter → prevents unnecessary re-renders
+  const handleGenerateCard = useCallback(() => {}, [])
 
   if (loading) {
     return (
@@ -143,7 +162,7 @@ function Dashboard() {
         {/* Top artists carousel */}
         <section className="app__gallery-wrapper">
           <CircularGallery
-            items={topArtistsGallery.map(a => ({ image: a.image, text: `${a.name}` }))}
+            items={topArtistsGalleryItems}
             bend={3}
             textColor="#ffffff"
             borderRadius={0.05}
@@ -157,7 +176,7 @@ function Dashboard() {
           <h2 className="app__driftwall-title">Top Albums</h2>
           <div className="app__driftwall-container">
             <DriftWall
-              items={topAlbums.map(a => ({ image: a.image || a.cover, title: a.title }))}
+              items={driftWallAlbumItems}
               columns={6}
               tileWidth={180}
               tileHeight={120}
@@ -174,6 +193,7 @@ function Dashboard() {
               fade={0.7}
               dim={0.5}
               overlayColor="#0a0a0a"
+            // style={{}}  ← removed: empty object literal creates new ref every render, breaks cssVars useMemo
             />
           </div>
         </section>
@@ -229,8 +249,8 @@ function Dashboard() {
         <div className="scanner-section__fade" />
         <div className="scanner-section__content">
           <div className="listening-stats">
-            <TimeClock hourly={listeningByHour.length ? listeningByHour : new Array(24).fill(0)} />
-            <WeekdayChart weekdays={listeningByWeekday.length ? listeningByWeekday : new Array(7).fill(0)} />
+            <TimeClock hourly={listeningByHour.length ? listeningByHour : EMPTY_HOURS} />
+            <WeekdayChart weekdays={listeningByWeekday.length ? listeningByWeekday : EMPTY_DAYS} />
           </div>
         </div>
       </section>
@@ -271,7 +291,7 @@ function Dashboard() {
         </div>
         <div className="gradient-waves-section__fade" />
         <div className="gradient-waves-section__content">
-          <PageFooter onGenerateCard={() => {}} />
+          <PageFooter onGenerateCard={handleGenerateCard} />
         </div>
       </section>
     </div>

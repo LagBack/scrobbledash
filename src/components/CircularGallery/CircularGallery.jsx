@@ -627,6 +627,8 @@ export default function CircularGallery({
   scrollEase = 0.05
 }) {
   const containerRef = useRef(null);
+  const pausedRef = useRef(false);
+
   useEffect(() => {
     if (!containerRef.current) return;
     let app;
@@ -644,8 +646,33 @@ export default function CircularGallery({
       });
     });
 
+    // Pause rAF when component goes off-screen (saves GPU)
+    let isPageVisible = !document.hidden;
+    const ioObs = new IntersectionObserver(
+      ([entry]) => { pausedRef.current = !entry.isIntersecting; },
+      { threshold: 0 }
+    );
+    ioObs.observe(containerRef.current);
+
+    const onVisibility = () => { isPageVisible = !document.hidden; };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // Integrate with App's rAF: modify its loop to respect paused state
+    if (app) {
+      const origUpdate = app.update.bind(app);
+      app.update = function () {
+        if (pausedRef.current || !isPageVisible) {
+          this.raf = window.requestAnimationFrame(this.update);
+          return;
+        }
+        origUpdate();
+      };
+    }
+
     return () => {
       isMounted = false;
+      ioObs.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       if (app) app.destroy();
     };
   }, [items, bend, textColor, borderRadius, font, fontUrl, scrollSpeed, scrollEase]);
