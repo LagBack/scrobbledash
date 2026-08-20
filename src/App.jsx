@@ -1,5 +1,5 @@
 import { Routes, Route, useSearchParams, useNavigate } from 'react-router-dom'
-import { useMemo, useCallback } from 'react'
+import { useMemo } from 'react'
 import Home from './pages/Home'
 import CircularGallery from './components/CircularGallery/CircularGallery'
 import DriftWall from './components/DriftWall/DriftWall'
@@ -64,8 +64,6 @@ function Dashboard() {
   const EMPTY_HOURS = useMemo(() => new Array(24).fill(0), [])
   const EMPTY_DAYS = useMemo(() => new Array(7).fill(0), [])
 
-  // Stable callback for PageFooter → prevents unnecessary re-renders
-  const handleGenerateCard = useCallback(() => {}, [])
 
   if (loading) {
     return (
@@ -291,7 +289,7 @@ function Dashboard() {
         </div>
         <div className="gradient-waves-section__fade" />
         <div className="gradient-waves-section__content">
-          <PageFooter onGenerateCard={handleGenerateCard} />
+          <PageFooter />
         </div>
       </section>
     </div>

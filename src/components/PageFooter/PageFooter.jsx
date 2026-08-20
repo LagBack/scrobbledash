@@ -2,19 +2,9 @@ import './PageFooter.css'
 
 const GITHUB_URL = 'https://github.com/LagBack/scrobbledash'
 
-export default function PageFooter({ onGenerateCard }) {
+export default function PageFooter() {
   return (
     <div className="page-footer">
-      <button type="button" className="page-footer__generate" onClick={onGenerateCard}>
-        <span className="page-footer__generate-icon" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="4" width="18" height="16" rx="3" />
-            <path d="M7 9h10M7 13h6" />
-          </svg>
-        </span>
-        Generate Card
-      </button>
-
       <footer className="page-footer__bar">
         <a
           href={GITHUB_URL}
