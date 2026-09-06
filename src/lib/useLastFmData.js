@@ -3,7 +3,7 @@
  * All functions return Promise<T | null>; errors are never thrown.
  */
 
-const BASE = 'http://ws.audioscrobbler.com/2.0'
+const BASE = 'https://ws.audioscrobbler.com/2.0'
 const LIMIT = 50 // Top tracks limit (lastfm max is 50)
 
 function get(key) {
@@ -66,47 +66,157 @@ export async function fetchTrackInfo(trackTitle, artistName) {
 }
 
 /** Fetch a high-quality image for an artist/band.
- * Uses Wikipedia's MediaWiki API to find the artist's portrait/photo. */
-export async function fetchArtistImage(artistName) {
+ * Priority: Wikipedia thumbnail -> Wikidata image -> null (gradient placeholder). */
+const imageResultCache = new Map()
+
+/** Normalize a name for comparison/caching purposes. */
+function normalizeForImage(name) {
+  return (name || '').trim().toLowerCase()
+}
+
+function isLikelyArtistDescription(description) {
+  const text = normalizeForImage(description)
+  return (
+    text.includes('band') ||
+    text.includes('musician') ||
+    text.includes('singer') ||
+    text.includes('rapper') ||
+    text.includes('dj') ||
+    text.includes('artist') ||
+    text.includes('composer') ||
+    text.includes('songwriter') ||
+    text.includes('duo') ||
+    text.includes('group')
+  )
+}
+
+async function fetchArtistImageFromWikidata(artistName) {
+  const norm = normalizeForImage(artistName)
+  if (!norm) return null
+
+  const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(artistName)}&language=en&type=item&limit=10&format=json&origin=*`
   try {
-    // First try Wikipedia page description API — returns thumbnail if the page has one
+    const res = await fetch(searchUrl)
+    if (!res.ok) return null
+    const json = await res.json()
+    const candidates = Array.isArray(json?.search) ? json.search : []
+    const exactMatches = candidates.filter(item => normalizeForImage(item.label) === norm)
+    const preferred = exactMatches.filter(item => isLikelyArtistDescription(item.description))
+    const shortlist = preferred.length ? preferred : exactMatches
+
+    for (const item of shortlist) {
+      if (!item?.id) continue
+      const entityRes = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${encodeURIComponent(item.id)}.json`)
+      if (!entityRes.ok) continue
+      const entityJson = await entityRes.json()
+      const entity = entityJson?.entities?.[item.id]
+      const p18 = entity?.claims?.P18?.[0]?.mainsnak?.datavalue?.value
+      const fileName = typeof p18 === 'string' ? p18 : (p18?.['#text'] ?? '')
+      if (fileName) {
+        return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}`
+      }
+    }
+  } catch {
+    // Wikidata lookup failed - continue to placeholder
+  }
+
+  return null
+}
+
+async function fetchArtistImageFromLastFm(artistName) {
+  const apiKey = import.meta.env.VITE_LASTFM_API_KEY
+  if (!apiKey) return null
+  let artistMbid = ''
+
+  const infoUrl = `${BASE}?method=artist.getInfo&format=json&api_key=${encodeURIComponent(apiKey)}&artist=${encodeURIComponent(artistName)}`
+  try {
+    const infoRes = await fetch(infoUrl)
+    if (infoRes.ok) {
+      const infoJson = await infoRes.json()
+      const resolvedName = normalizeForImage(infoJson?.artist?.name)
+      if (resolvedName === normalizeForImage(artistName)) {
+        artistMbid = infoJson?.artist?.mbid || ''
+        const artistImage = pickImg(infoJson?.artist?.image)
+        if (artistImage) return artistImage
+      }
+    }
+  } catch {
+    // Continue to Last.fm album artwork if artist info is unavailable.
+  }
+
+  const searchUrl = `${BASE}?method=album.search&format=json&limit=10&api_key=${encodeURIComponent(apiKey)}&album=${encodeURIComponent(artistName)}`
+  try {
+    const searchRes = await fetch(searchUrl)
+    if (searchRes.ok) {
+      const searchJson = await searchRes.json()
+      const exactAlbums = (searchJson?.results?.albummatches?.album ?? [])
+        .filter(album => normalizeForImage(album?.artist) === normalizeForImage(artistName))
+      for (const album of exactAlbums) {
+        const albumImage = pickImg(album?.image)
+        if (albumImage) return albumImage
+      }
+    }
+  } catch {
+    // Continue to the top-albums endpoint.
+  }
+
+  const albumsUrl = `${BASE}?method=artist.getTopAlbums&format=json&limit=5&api_key=${encodeURIComponent(apiKey)}&artist=${encodeURIComponent(artistName)}${artistMbid ? `&mbid=${encodeURIComponent(artistMbid)}` : ''}`
+  try {
+    const albumsRes = await fetch(albumsUrl)
+    if (!albumsRes.ok) return null
+    const albumsJson = await albumsRes.json()
+    const resolvedName = normalizeForImage(albumsJson?.topalbums?.['@attr']?.artist)
+    if (resolvedName && resolvedName !== normalizeForImage(artistName)) return null
+
+    for (const album of albumsJson?.topalbums?.album ?? []) {
+      const albumImage = pickImg(album?.image)
+      if (albumImage) return albumImage
+    }
+  } catch {
+    // Last.fm album artwork unavailable.
+  }
+
+  return null
+}
+
+/** Fetch a high-quality image for an artist/band.
+ * Priority: Wikipedia thumbnail -> Last.fm artwork -> Wikidata image -> null. */
+export async function fetchArtistImage(artistName) {
+  const norm = normalizeForImage(artistName)
+  if (!norm || norm.length < 2) return null
+
+  const cached = imageResultCache.get(norm)
+  if (cached === '__MISSING__') return null
+  if (cached) return cached
+
+  try {
     const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(artistName)}`
     const res = await fetch(wikiUrl)
     if (res.ok) {
       const json = await res.json()
-      // Wikipedia REST API returns a 'thumbnail' object with the source URL
       if (json?.thumbnail?.source) {
-        // Wikipedia's thumbnail is small (~200-400px). Get the original by replacing size.
         const origUrl = json.thumbnail.source.replace('/320-', '/1000-')
+        imageResultCache.set(norm, origUrl)
         return origUrl
       }
     }
-  } catch (err) {
-    console.warn(`[lastfm] Wiki search failed for "${artistName}":`, err.message)
+  } catch {
+    // Wikipedia lookup failed - continue to Last.fm.
   }
 
-  // Fallback: try Wikipedia full page API to extract the first image from the infobox
-  if (artistName && artistName.length > 2) {
-    try {
-      const rawUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(artistName)}&prop=images&format=json&origin=*`
-      const res = await fetch(rawUrl)
-      if (res.ok) {
-        const json = await res.json()
-        const pages = json?.query?.pages
-        if (pages) {
-          // Get the first non-disambiguation page
-          for (const [, page] of Object.entries(pages)) {
-            if (page.title && !page.title.includes(':')) {
-              return null // No thumbnail on this page — fall back to placeholder
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn(`[lastfm] Wiki full page failed for "${artistName}":`, err.message)
-    }
+  const lastFmImg = await fetchArtistImageFromLastFm(artistName)
+  if (lastFmImg) {
+    imageResultCache.set(norm, lastFmImg)
+    return lastFmImg
   }
 
+  const wikidataImg = await fetchArtistImageFromWikidata(artistName)
+  if (wikidataImg) {
+    imageResultCache.set(norm, wikidataImg)
+    return wikidataImg
+  }
+
+  imageResultCache.set(norm, '__MISSING__')
   return null
 }
 
@@ -468,7 +578,7 @@ export default function useLastFmData(username) {
     const rawArtists = normalizeTopArtists(artistsData) || []
     const topArtistsCapped = rawArtists.slice(0, 5)
 
-    // Build gallery data for the top-artists carousel with high-quality images from Wikipedia
+    // Build gallery data for the top-artists carousel with high-quality images (Wikipedia -> Last.fm -> Wikidata)
     let topArtistsGallery = []
     if (topArtistsCapped.length) {
       const promises = topArtistsCapped.map(a => ({

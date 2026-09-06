@@ -3,7 +3,7 @@
  * All functions return Promise<T | null>; errors are never thrown.
  */
 
-const BASE = 'http://ws.audioscrobbler.com/2.0'
+const BASE = 'https://ws.audioscrobbler.com/2.0'
 const LIMIT = 50 // Top tracks limit (lastfm max is 50)
 
 function get(key) {
