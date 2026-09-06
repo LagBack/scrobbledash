@@ -154,21 +154,31 @@ export async function fetchTopTracks(username) {
   }
 }
 
-/** Fetch recent tracks for a user. Accepts optional time-range params (Unix timestamps) to limit the window. */
+/** Fetch all recent tracks for a user in an optional time range. */
 export async function fetchRecentTracks(username, { from, to } = {}) {
-  const base = get('user.getRecentTracks') + `&user=${encodeURIComponent(username)}&limit=200`
-  let url = base
-  if (from) url += `&from=${from}`
-  if (to) url += `&to=${to}`
-  try {
-    const res = await fetch(url)
-    if (!res.ok) return null
-    const json = await res.json()
-    const recenttracks = json?.recenttracks?.track
-    if (!Array.isArray(recenttracks)) return null
-    return recenttracks
-  } catch {
-    return null
+  const tracks = []
+  let page = 1
+
+  while (true) {
+    let url = get('user.getRecentTracks') + `&user=${encodeURIComponent(username)}&limit=200&page=${page}`
+    if (from) url += `&from=${from}`
+    if (to) url += `&to=${to}`
+
+    try {
+      const res = await fetch(url)
+      if (!res.ok) return null
+      const json = await res.json()
+      const recenttracks = json?.recenttracks?.track
+      if (!Array.isArray(recenttracks)) return null
+
+      tracks.push(...recenttracks)
+      const totalPages = Number(json?.recenttracks?.['@attr']?.totalPages) || page
+      const hasMorePages = page < totalPages || recenttracks.length === 200
+      if (!hasMorePages || recenttracks.length === 0) return tracks
+      page += 1
+    } catch {
+      return null
+    }
   }
 }
 
