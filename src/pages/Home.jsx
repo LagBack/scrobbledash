@@ -24,13 +24,9 @@ export default function Home() {
 
   return (
     <div className="home">
-      {/* RetroGrid background */}
       <RetroGrid />
-
-      {/* Full-page dark gradient overlay */}
       <div className="home__overlay" />
 
-      {/* Content card */}
       <main className="home__content">
         <div className="home__card">
           <div className="home__logo-row">
@@ -86,7 +82,6 @@ export default function Home() {
             <a href="/privacy.html">privacy policy</a>
           </p>
 
-          {/* Social icons */}
           <div className="home__social-row">
             <a
               href="https://github.com/LagBack/scrobbledash"

@@ -1,13 +1,11 @@
 export const totalScrobbles = 90210
 export const weeklyGenre = "midwest emo"
 
-// Scrobbles per hour (0 = midnight, 23 = 11 PM)
 export const listeningByHour = [
   3, 2, 1, 0, 0, 1, 4, 9, 14, 18, 22, 26,
   28, 24, 19, 16, 20, 26, 32, 35, 30, 22, 12, 6,
 ]
 
-// Scrobbles per weekday (Sun → Sat)
 export const listeningByWeekday = [38, 52, 61, 74, 68, 89, 95]
 
 export const funStats = {
@@ -19,20 +17,17 @@ export const funStats = {
   quip: 'terminally online',
 }
 
-// Dominant artist data (calculated from total scrobbles per artist)
 export const dominantArtist = {
   name: 'Radiohead',
   plays: 842,
-  percentage: 0.93, // (842 / totalScrobbles * 100), rounded to 2 decimals
+  percentage: 0.93,
 }
 
-// Second-place artist for comparison
 export const secondArtist = {
   name: 'Pink Floyd',
   plays: 731,
 }
 
-// Most played track
 export const mostPlayedTrack = {
   track: 'Creep',
   artist: 'Radiohead',
@@ -40,8 +35,7 @@ export const mostPlayedTrack = {
   cover: 'https://is1-ssl.mzstatic.com/image/thumb/Music114/v4/d9/b8/36/d9b83691-1546-96a2-756d-c5fff6a25ebf/192641516245_Cover.jpg/100x100bb.jpg',
 }
 
-// Derived ratio for comparison display
-export const dominantRatio = (dominantArtist.plays / secondArtist.plays).toFixed(1) // "1.2"
+export const dominantRatio = (dominantArtist.plays / secondArtist.plays).toFixed(1)
 
 export const user = {
   name: 'joaopedro',

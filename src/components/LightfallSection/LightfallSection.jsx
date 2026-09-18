@@ -4,9 +4,6 @@ import './Lightfall.css';
 
 const MAX_COLORS = 8;
 
-/**
- * Convert hex string to [r, g, b] floats in 0–1 range.
- */
 const hexToRGB = hex => {
   const c = hex.replace('#', '').padEnd(6, '0');
   const r = parseInt(c.slice(0, 2), 16) / 255;
@@ -15,9 +12,6 @@ const hexToRGB = hex => {
   return [r, g, b];
 };
 
-/**
- * Prepare color array: pad or trim to MAX_COLORS, compute average for mouse glow.
- */
 const prepColors = input => {
   const base = (input && input.length ? input : ['#A6C8FF', '#5227FF', '#FF9FFC']).slice(0, MAX_COLORS);
   const count = base.length;

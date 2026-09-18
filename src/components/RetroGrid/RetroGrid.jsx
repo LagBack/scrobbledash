@@ -137,7 +137,6 @@ export default function RetroGrid({ className = '' }) {
 
       const rgb = hexToRgb(gridColor);
 
-      // Sky gradient
       const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.55);
       skyGradient.addColorStop(0, `rgba(${rgb.r * 0.05}, ${rgb.g * 0.05}, ${rgb.b * 0.15}, 1)`);
       skyGradient.addColorStop(0.3, `rgba(${rgb.r * 0.1}, ${rgb.g * 0.08}, ${rgb.b * 0.2}, 1)`);
@@ -148,7 +147,6 @@ export default function RetroGrid({ className = '' }) {
       ctx.fillStyle = skyGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height * 0.55);
 
-      // Ground gradient
       const groundGradient = ctx.createLinearGradient(0, canvas.height * 0.55, 0, canvas.height);
       groundGradient.addColorStop(0, `rgba(${rgb.r * 0.1}, ${rgb.g * 0.08}, ${rgb.b * 0.15}, 1)`);
       groundGradient.addColorStop(0.3, `rgba(${rgb.r * 0.05}, ${rgb.g * 0.03}, ${rgb.b * 0.08}, 1)`);

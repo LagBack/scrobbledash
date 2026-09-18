@@ -10,7 +10,6 @@ export default function FunStatsSection({ stats, dominantArtist, secondArtist, m
     <section className="fun-stats">
       <div className="fun-stats__inner">
         <div className="fun-stats__grid">
-          {/* Dominant Artist Card */}
           <article className="fun-stats__card fun-stats__card--dominant">
             <p className="fun-stats__label">#1 artist</p>
             <div className="fun-stats__dominant-content">
@@ -23,7 +22,6 @@ export default function FunStatsSection({ stats, dominantArtist, secondArtist, m
                 {dominantArtist.plays.toLocaleString()} plays · that's <strong>{dominantArtist.percentage}%</strong> of everything you've listened to.
               </p>
 
-              {/* Comparison with #2 */}
               <div className="fun-stats__comparison">
                 <p className="fun-stats__comparison-text">
                   <strong>{dominantArtist.name}</strong> has <strong>{dominantRatio}×</strong> more plays than <strong>{secondArtist.name}</strong> (#2)
@@ -33,7 +31,6 @@ export default function FunStatsSection({ stats, dominantArtist, secondArtist, m
             </div>
           </article>
 
-          {/* Most Played Track Card */}
           <article className="fun-stats__card fun-stats__card--track">
             <p className="fun-stats__label">most played</p>
             <div className="fun-stats__track-content">

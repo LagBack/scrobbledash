@@ -13,7 +13,6 @@ export default function GenreReveal({ genre, pool = DEFAULT_POOL }) {
   const [step, setStep] = useState(0)
   const [settled, setSettled] = useState(false)
 
-  // Build the spin sequence once: a handful of random pool words, ending on the real genre.
   const sequence = useMemo(() => {
     const spins = 10
     const words = Array.from({ length: spins }, () => {
@@ -35,7 +34,6 @@ export default function GenreReveal({ genre, pool = DEFAULT_POOL }) {
         setSettled(true)
         return
       }
-      // ease-out timing: fast spins first, slows down as it approaches the real value
       const progress = i / sequence.length
       const delay = 60 + progress * progress * 260
       timeoutRef.current = setTimeout(tick, delay)

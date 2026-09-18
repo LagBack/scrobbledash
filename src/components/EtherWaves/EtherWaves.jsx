@@ -349,7 +349,6 @@ export default function EtherWavesBackground({
       container.addEventListener("pointerleave", handlePointerLeave);
     }
 
-    // rAF loop — pauses when off-screen or tab hidden (no scene destruction)
     let rafId = 0;
     let isPageVisible = !document.hidden;
 
@@ -357,7 +356,6 @@ export default function EtherWavesBackground({
       if (!active) return;
       uniforms.iTime.value = clock.getElapsedTime();
 
-      // Smooth mouse interpolation
       const ease = 1 - Math.exp(-mouseDamping * 60 / 60);
       currentMouseRef.current.x += (targetMouseRef.current.x - currentMouseRef.current.x) * ease;
       currentMouseRef.current.y += (targetMouseRef.current.y - currentMouseRef.current.y) * ease;

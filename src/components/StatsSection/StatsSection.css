@@ -31,7 +31,7 @@
   text-align: center;
 }
 
-/* Make ScrollFloat numbers fit nicely in cards */
+
 .app__stat-card .scroll-float {
   display: flex;
   justify-content: center;

@@ -222,10 +222,8 @@ const DriftWall = ({
     [tileWidth, tileHeight, gap, radius, perspective, lift, dim, grayscale, overlayColor, fade]
   );
 
-  /** Fallback gradient used when an external image fails to load. */
   const FALLBACK_IMAGE = useMemo(
     () => {
-      // Generate a deterministic base64 placeholder similar to makePlaceholder in useLastFmData
       const c = document.createElement('canvas')
       c.width = 200; c.height = 132
       const ctx = c.getContext('2d')

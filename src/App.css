@@ -1,19 +1,15 @@
 @import "tailwindcss";
 
-/* ===== Root layout ===== */
 .app {
   min-height: 100vh;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Solid background behind content area — canvas shows through where content is transparent */
   background-color: var(--bg-primary);
-  /* Anchors RetroGrid's `position: absolute` to the page itself. */
   position: relative;
 }
 
-/* Scrollable content region */
 .app__main {
   flex: 1;
   display: flex;
@@ -37,7 +33,6 @@
   z-index: 0;
 }
 
-/* ===== Header ===== */
 .app__header {
   width: 100%;
   padding: 24px 32px;
@@ -64,7 +59,7 @@
   color: var(--accent);
 }
 
-/* ===== Welcome Section ===== */
+
 .app__main {
   flex: 1;
   display: flex;
@@ -98,7 +93,6 @@
   line-height: 0.9;
 }
 
-/* SplitText character styles */
 .split-char {
   display: inline-block !important;
   will-change: transform, opacity;
@@ -126,7 +120,6 @@
   animation: fade-in-up 0.8s ease-out 0.15s both;
 }
 
-/* ===== Gallery Section ===== */
 .app__gallery-wrapper {
   position: relative;
   width: 100%;
@@ -134,8 +127,6 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   animation: fade-in-up 0.8s ease-out 0.3s both;
-
-  /* Simple border box */
   border: 1px solid rgba(255, 255, 255, 0.06);
   transition: border-color 0.3s ease;
 }
@@ -162,12 +153,13 @@
   cursor: grabbing;
 }
 
-/* ===== Scrobbles Section (MagicRings choreography) ===== */
+
 .app__scrobbles {
   width: 100%;
   height: 360px;
   margin-top: 48px;
   position: relative;
+  background: transparent;
 }
 
 .app__scrobbles-bg {
@@ -176,6 +168,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
 }
 
 .app__scrobbles-content {
@@ -190,7 +183,7 @@
   justify-content: center;
 }
 
-/* ===== Label choreography — always mounted, opacity-driven ===== */
+
 .app__scrobbles-label {
   font-size: 24px;
   color: var(--text-secondary);
@@ -203,7 +196,7 @@
   transition: opacity 0.5s ease;
 }
 
-/* ===== Counter choreography — always mounted, opacity-driven ===== */
+
 .app__counter-wrap {
   display: flex;
   align-items: center;
@@ -211,7 +204,6 @@
   opacity: 0;
 }
 
-/* ===== DriftWall Section ===== */
 .app__driftwall {
   width: 100%;
   margin-top: 64px;
@@ -233,8 +225,6 @@
   height: 560px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  /* Simple border box */
-  border: 1px solid rgba(255, 255, 255, 0.06);
   transition: border-color 0.3s ease;
 }
 
@@ -242,7 +232,6 @@
   border-color: var(--accent);
 }
 
-/* ===== Animations ===== */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -254,7 +243,7 @@
   }
 }
 
-/* ===== Responsive ===== */
+
 @media (max-width: 768px) {
   .app__welcome-text {
     font-size: 36px;
@@ -296,7 +285,6 @@
   }
 }
 
-/* ── Loading / Error states ─────────────────────── */
 .app__loading {
   display: flex;
   align-items: center;

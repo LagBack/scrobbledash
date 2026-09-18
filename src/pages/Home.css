@@ -7,7 +7,6 @@
   overflow: hidden;
 }
 
-/* Dark gradient overlay so the card stays readable over RetroGrid */
 .home__overlay {
   position: absolute;
   inset: 0;
@@ -29,7 +28,6 @@
   padding: 24px;
 }
 
-/* ── Card ──────────────────────────────────────── */
 .home__card {
   width: 100%;
   max-width: 480px;
@@ -37,7 +35,6 @@
   animation: fade-in-up 1s ease-out both;
 }
 
-/* ── Logo row ──────────────────────────────────── */
 .home__logo-row {
   display: flex;
   align-items: center;
@@ -57,7 +54,7 @@
   color: #780000;
 }
 
-/* ── Typography ─────────────────────────────────── */
+
 .home__title {
   font-size: 32px;
   font-weight: 700;
@@ -74,7 +71,7 @@
   line-height: 1.5;
 }
 
-/* ── Form ───────────────────────────────────────── */
+
 .home__form {
   display: flex;
   flex-direction: column;
@@ -136,7 +133,7 @@
   animation: fade-in-up 0.4s ease-out both;
 }
 
-/* ── Submit button ─────────────────────────────── */
+
 .home__submit {
   width: 100%;
   padding: 16px 24px;
@@ -165,7 +162,7 @@
   transform: scale(0.98);
 }
 
-/* Arrow icon on submit */
+
 .home__submit svg {
   transition: transform 0.2s ease;
 }
@@ -174,7 +171,7 @@
   transform: translateX(3px);
 }
 
-/* ── Social icons row ──────────────────────────── */
+
 .home__social-row {
   display: flex;
   align-items: center;
@@ -207,7 +204,7 @@
   transform: translateY(-1px);
 }
 
-/* ── Footer ─────────────────────────────────────── */
+
 .home__footer-link {
   font-size: 12px;
   margin-top: 28px;
@@ -226,7 +223,6 @@
   color: #b3b3b3;
 }
 
-/* ── Animations ────────────────────────────────── */
 @keyframes fade-in-up {
   from {
     opacity: 0;
@@ -238,7 +234,7 @@
   }
 }
 
-/* ── Responsive ─────────────────────────────────── */
+
 @media (max-width: 560px) {
   .home__title {
     font-size: 24px;

@@ -1,10 +1,5 @@
-/**
- * Last.fm Public Web API — browser-side fetch layer.
- * All functions return Promise<T | null>; errors are never thrown.
- */
-
 const BASE = 'https://ws.audioscrobbler.com/2.0'
-const LIMIT = 50 // Top tracks limit (lastfm max is 50)
+const LIMIT = 50
 
 function get(key) {
   const params = new URLSearchParams({ method: key, format: 'json' })
@@ -13,22 +8,15 @@ function get(key) {
   return `${BASE}?${params.toString()}`
 }
 
-// ── helpers ───────────────────────────────────────
-
-/** Extract largest image URL from last.fm image array, or null. */
 export function img(arr) {
   if (!Array.isArray(arr)) return ''
-  // last.fm images are ordered small → medium → large → extralarge
   const best = arr[arr.length - 1]
   return typeof best === 'string' ? best : (best?.['#text'] ?? '')
 }
 
-// ── API functions ────────────────────────────────
 
-/** Filename of the generic Last.fm no-image placeholder icon. */
 const NOIMAGE_ID = '2a96cbd8b46e442fc41c2b86b821562f.png'
 
-/** Resolve a Last.fm album image array into the largest real URL, or empty string if none. */
 export function pickImg(arr) {
   if (!arr || typeof arr === 'string') return ''
   if (Array.isArray(arr)) {
@@ -47,7 +35,6 @@ export function pickImg(arr) {
   return ''
 }
 
-/** Fetch track info from Last.fm — returns the album name and its image URLs. */
 export async function fetchTrackInfo(trackTitle, artistName) {
   const url = `${BASE}?method=track.getInfo&format=json&api_key=${import.meta.env.VITE_LASTFM_API_KEY}&artist=${encodeURIComponent(artistName)}&track=${encodeURIComponent(trackTitle)}`
   try {
@@ -65,11 +52,9 @@ export async function fetchTrackInfo(trackTitle, artistName) {
   return null
 }
 
-/** Fetch a high-quality image for an artist/band.
- * Priority: Wikipedia thumbnail -> Wikidata image -> null (gradient placeholder). */
-const imageResultCache = new Map()
+const imageResultCache = new Map();
+const pendingImageRequests = new Map();
 
-/** Normalize a name for comparison/caching purposes. */
 function normalizeForImage(name) {
   return (name || '').trim().toLowerCase()
 }
@@ -117,7 +102,6 @@ async function fetchArtistImageFromWikidata(artistName) {
       }
     }
   } catch {
-    // Wikidata lookup failed - continue to placeholder
   }
 
   return null
@@ -141,7 +125,6 @@ async function fetchArtistImageFromLastFm(artistName) {
       }
     }
   } catch {
-    // Continue to Last.fm album artwork if artist info is unavailable.
   }
 
   const searchUrl = `${BASE}?method=album.search&format=json&limit=10&api_key=${encodeURIComponent(apiKey)}&album=${encodeURIComponent(artistName)}`
@@ -157,7 +140,6 @@ async function fetchArtistImageFromLastFm(artistName) {
       }
     }
   } catch {
-    // Continue to the top-albums endpoint.
   }
 
   const albumsUrl = `${BASE}?method=artist.getTopAlbums&format=json&limit=5&api_key=${encodeURIComponent(apiKey)}&artist=${encodeURIComponent(artistName)}${artistMbid ? `&mbid=${encodeURIComponent(artistMbid)}` : ''}`
@@ -173,54 +155,61 @@ async function fetchArtistImageFromLastFm(artistName) {
       if (albumImage) return albumImage
     }
   } catch {
-    // Last.fm album artwork unavailable.
   }
 
   return null
 }
 
-/** Fetch a high-quality image for an artist/band.
- * Priority: Wikipedia thumbnail -> Last.fm artwork -> Wikidata image -> null. */
 export async function fetchArtistImage(artistName) {
-  const norm = normalizeForImage(artistName)
-  if (!norm || norm.length < 2) return null
+  const norm = normalizeForImage(artistName);
+  if (!norm || norm.length < 2) return null;
 
-  const cached = imageResultCache.get(norm)
-  if (cached === '__MISSING__') return null
-  if (cached) return cached
+  const cached = imageResultCache.get(norm);
+  if (cached === '__MISSING__') return null;
+  if (cached) return cached;
 
-  try {
-    const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(artistName)}`
-    const res = await fetch(wikiUrl)
-    if (res.ok) {
-      const json = await res.json()
-      if (json?.thumbnail?.source) {
-        const origUrl = json.thumbnail.source.replace('/320-', '/1000-')
-        imageResultCache.set(norm, origUrl)
-        return origUrl
+  if (pendingImageRequests.has(norm)) {
+    return pendingImageRequests.get(norm);
+  }
+
+  const fetchAndCache = async () => {
+    try {
+      const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(artistName)}`;
+      const res = await fetch(wikiUrl);
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.thumbnail?.source) {
+          const origUrl = json.thumbnail.source.replace('/320-', '/1000-');
+          imageResultCache.set(norm, origUrl);
+          return origUrl;
+        }
       }
+    } catch {
     }
-  } catch {
-    // Wikipedia lookup failed - continue to Last.fm.
-  }
 
-  const lastFmImg = await fetchArtistImageFromLastFm(artistName)
-  if (lastFmImg) {
-    imageResultCache.set(norm, lastFmImg)
-    return lastFmImg
-  }
+    const lastFmImg = await fetchArtistImageFromLastFm(artistName);
+    if (lastFmImg) {
+      imageResultCache.set(norm, lastFmImg);
+      return lastFmImg;
+    }
 
-  const wikidataImg = await fetchArtistImageFromWikidata(artistName)
-  if (wikidataImg) {
-    imageResultCache.set(norm, wikidataImg)
-    return wikidataImg
-  }
+    const wikidataImg = await fetchArtistImageFromWikidata(artistName);
+    if (wikidataImg) {
+      imageResultCache.set(norm, wikidataImg);
+      return wikidataImg;
+    }
 
-  imageResultCache.set(norm, '__MISSING__')
-  return null
+    imageResultCache.set(norm, '__MISSING__');
+    return null;
+  };
+
+  const promise = fetchAndCache().finally(() => {
+    pendingImageRequests.delete(norm);
+  });
+  pendingImageRequests.set(norm, promise);
+  return promise;
 }
 
-/** Fetch basic user info (name, avatar, total scrobbles). */
 export async function fetchUserInfo(username) {
   const url = get('user.getInfo') + `&user=${encodeURIComponent(username)}`
   try {
@@ -232,7 +221,6 @@ export async function fetchUserInfo(username) {
     return {
       name: user.name || username,
       image: img(user.image),
-      // user.playcount is returned by the free/public API for all profiles
       scrobbles: parseInt(user.playcount ?? user.stats?.scrobbles, 10) || 0,
     }
   } catch {
@@ -240,7 +228,6 @@ export async function fetchUserInfo(username) {
   }
 }
 
-/** Fetch top tracks for a user. */
 export async function fetchTopTracks(username) {
   const url = get('user.getTopTracks') + `&user=${encodeURIComponent(username)}&limit=${LIMIT}`
   try {
@@ -258,35 +245,37 @@ export async function fetchTopTracks(username) {
   }
 }
 
-/** Fetch all recent tracks for a user in an optional time range. */
-export async function fetchRecentTracks(username, { from, to } = {}) {
-  const tracks = []
-  let page = 1
+const MAX_RECENT_TRACK_PAGES = 30; // Maximum pages to fetch (6000 tracks)
+const MAX_RECENT_TRACKS = 6000;
 
-  while (true) {
-    let url = get('user.getRecentTracks') + `&user=${encodeURIComponent(username)}&limit=200&page=${page}`
-    if (from) url += `&from=${from}`
-    if (to) url += `&to=${to}`
+export async function fetchRecentTracks(username, { from, to } = {}) {
+  const tracks = [];
+  let page = 1;
+
+  while (tracks.length < MAX_RECENT_TRACKS && page <= MAX_RECENT_TRACK_PAGES) {
+    let url = get('user.getRecentTracks') + `&user=${encodeURIComponent(username)}&limit=200&page=${page}`;
+    if (from) url += `&from=${from}`;
+    if (to) url += `&to=${to}`;
 
     try {
-      const res = await fetch(url)
-      if (!res.ok) return null
-      const json = await res.json()
-      const recenttracks = json?.recenttracks?.track
-      if (!Array.isArray(recenttracks)) return null
+      const res = await fetch(url);
+      if (!res.ok) return tracks.length ? tracks : null;
+      const json = await res.json();
+      const recenttracks = json?.recenttracks?.track;
+      if (!Array.isArray(recenttracks)) return tracks.length ? tracks : null;
 
-      tracks.push(...recenttracks)
-      const totalPages = Number(json?.recenttracks?.['@attr']?.totalPages) || page
-      const hasMorePages = page < totalPages || recenttracks.length === 200
-      if (!hasMorePages || recenttracks.length === 0) return tracks
-      page += 1
+      tracks.push(...recenttracks);
+      const totalPages = Number(json?.recenttracks?.['@attr']?.totalPages) || page;
+      if (page >= totalPages || recenttracks.length < 200 || tracks.length >= MAX_RECENT_TRACKS) return tracks;
+      page += 1;
     } catch {
-      return null
+      return tracks.length ? tracks : null;
     }
   }
+
+  return tracks;
 }
 
-/** Fetch top albums for a user. */
 export async function fetchTopAlbums(username) {
   const url = get('user.getTopAlbums') + `&user=${encodeURIComponent(username)}`
   try {
@@ -301,7 +290,6 @@ export async function fetchTopAlbums(username) {
   }
 }
 
-/** Fetch top artists for a user. */
 export async function fetchTopArtists(username) {
   const url = get('user.getTopArtists') + `&user=${encodeURIComponent(username)}`
   try {
@@ -316,7 +304,6 @@ export async function fetchTopArtists(username) {
   }
 }
 
-/** Fetch genre tags for a specific artist (used for genre analysis). */
 export async function fetchArtistTags(artistName) {
   const url = get('artist.getInfo') + `&artist=${encodeURIComponent(artistName)}`
   try {
@@ -330,7 +317,6 @@ export async function fetchArtistTags(artistName) {
   }
 }
 
-// ── hook ──────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
@@ -349,19 +335,14 @@ import {
 
 const PLACEHOLDER = 'https://lastfm.freetls.fastly.net/img/noimage_200.png'
 
-// ── helpers for data transformation ───────────────
-
-/** Generate a unique gradient placeholder image as a base64 data URL using the track name as seed. */
 function makePlaceholder(trackName) {
-  // Deterministic color from hash of track name
   let hash = 0
   for (let i = 0; i < (trackName || '').length; i++) {
     hash = trackName.charCodeAt(i) + ((hash << 5) - hash)
   }
   const h1 = Math.abs(hash) % 360
-  const h2 = (h1 + 40 + Math.abs(hash >> 8)) % 360 // slightly offset for gradient
+  const h2 = (h1 + 40 + Math.abs(hash >> 8)) % 360
 
-  // Draw gradient background + first letter
   const c = document.createElement('canvas')
   c.width = 400; c.height = 400
   const ctx = c.getContext('2d')
@@ -384,12 +365,11 @@ function makePlaceholder(trackName) {
   return c.toDataURL('image/jpeg', 0.85)
 }
 
-/** Check if an image URL looks like a real, loadable image. */
+
 function isValidImgUrl(url) {
   return typeof url === 'string' && url.length > 10 && (url.startsWith('http://') || url.startsWith('https://'))
 }
 
-/** Normalize top tracks into the shape our CircularGallery expects. */
 function normalizeTopTracks(topTracksResp) {
   if (!topTracksResp?.tracks) return []
   return topTracksResp.tracks
@@ -399,18 +379,15 @@ function normalizeTopTracks(topTracksResp) {
     }))
 }
 
-/** Normalize top albums into the shape our DriftWall expects. */
 function normalizeTopAlbums(albumsResp) {
   if (!Array.isArray(albumsResp)) return []
-  // Keep every album — use gradient placeholder for missing images so
-  // no positions go blank (filtering previously caused unpredictable gaps)
   return albumsResp.map(a => ({
     image: pickImg(a.image) || makePlaceholder(`${a.artist?.name ?? 'Unknown'} — ${a.name ?? 'Unknown Album'}`),
     title: `${a.artist?.name ?? 'Unknown Artist'} — ${a.name ?? 'Unknown Album'}`,
   }))
 }
 
-/** Normalize top artists into the shape our FloatingLinesBackground expects. */
+
 function normalizeTopArtists(artistsResp) {
   if (!Array.isArray(artistsResp)) return []
   return artistsResp.map(a => ({
@@ -420,45 +397,50 @@ function normalizeTopArtists(artistsResp) {
   }))
 }
 
-/** Analyze genres from a list of artist names. Returns the most frequent genre or null. */
-const artistTagCache = new Map()
+const GENRE_REQUEST_LIMIT = 20;
+
+const artistTagCache = new Map();
+
+const pendingGenreRequests = new Map();
 
 async function analyzeGenres(artistNames) {
-  if (!artistNames.length) return null
+  if (!artistNames.length) return null;
 
-  // Count genres across all artists' tags (parallel fetch with cache)
-  const genreCounts = new Map()
+  const genreCounts = new Map();
   const fetched = await Promise.allSettled(
-    artistNames.slice(0, 30).map(async (name) => {
-      if (artistTagCache.has(name)) return artistTagCache.get(name)
-      const tags = await fetchArtistTags(name)
-      if (tags) artistTagCache.set(name, tags)
-      return tags
-    })
-  )
+    artistNames.slice(0, GENRE_REQUEST_LIMIT).map(async (name) => {
+      if (artistTagCache.has(name)) return artistTagCache.get(name);
+      if (pendingGenreRequests.has(name)) return pendingGenreRequests.get(name);
+      const promise = fetchArtistTags(name).then((tags) => {
+        if (tags) artistTagCache.set(name, tags);
+        pendingGenreRequests.delete(name);
+        return tags;
+      });
+      pendingGenreRequests.set(name, promise);
+      return promise;
+    }),
+  );
 
   for (const result of fetched) {
     if (result.status === 'fulfilled' && result.value) {
       for (const tag of result.value) {
-        genreCounts.set(tag, (genreCounts.get(tag) || 0) + 1)
+        genreCounts.set(tag, (genreCounts.get(tag) || 0) + 1);
       }
     }
   }
 
-  // Find the most common genre (skip 'last.fm' tag which appears on all artists)
-  let topGenre = null
-  let maxCount = 0
+  let topGenre = null;
+  let maxCount = 0;
   for (const [genre, count] of genreCounts) {
-    if (genre === 'last.fm') continue
+    if (genre === 'last.fm') continue;
     if (count > maxCount) {
-      maxCount = count
-      topGenre = genre
+      maxCount = count;
+      topGenre = genre;
     }
   }
-  return topGenre || null
+  return topGenre || null;
 }
 
-/** Compute listening patterns from recenttracks timestamps. */
 function computePatterns(recentTracks) {
   const hourCounts = new Array(24).fill(0)
   const dayCounts = [0, 0, 0, 0, 0, 0, 0] // Sun=0 ... Sat=6
@@ -475,7 +457,6 @@ function computePatterns(recentTracks) {
   return { hourCounts, dayCounts }
 }
 
-// ── hook ──────────────────────────────────────────
 
 export default function useLastFmData(username) {
   const [data, setData] = useState(null)
@@ -495,7 +476,6 @@ export default function useLastFmData(username) {
     setLoading(true)
     setError('')
 
-    // If no API key, use mock data directly (don't fetch)
     if (!hasApiKey) {
       setData({
         user: mockUser,
@@ -515,12 +495,8 @@ export default function useLastFmData(username) {
       return
     }
 
-    // Race-condition guard: cancel previous in-flight fetch
     const thisFetch = ++currentFetchRef.current
 
-    // Fetch everything in parallel — use a 7-day window so the busiest-days
-    // chart always covers all 7 weekdays, not just the partial week the user
-    // has scrobbled so far.
     const now = new Date()
     const from = new Date(now)
     from.setDate(from.getDate() - 7)
@@ -543,19 +519,15 @@ export default function useLastFmData(username) {
       fetchTopArtists(user),
     ])
 
-    // Discard stale result if a newer fetch started while we were waiting
     if (currentFetchRef.current !== thisFetch) return
 
-    // ── Extract results (null on rejection) ──
     const infoData = info.status === 'fulfilled' ? info.value : null
     const tracksData = topTracks.status === 'fulfilled' ? topTracks.value : null
     const recentData = recentTracks.status === 'fulfilled' ? recentTracks.value : null
     const albumsData = topAlbumsResp.status === 'fulfilled' ? topAlbumsResp.value : null
     const artistsData = topArtistsResp.status === 'fulfilled' ? topArtistsResp.value : null
 
-    // ── Build the data object with fallbacks ──
     const effectiveUser = infoData?.name || user
-    // Try both sources for scrobbles; fall back to mock only if truly empty
     const infoScrobbles = infoData != null && infoData.scrobbles != null ? parseInt(infoData.scrobbles, 10) : NaN
     const tracksScrobbles = tracksData?.totalScrobbles != null ? parseInt(tracksData.totalScrobbles, 10) : NaN
 
@@ -564,7 +536,6 @@ export default function useLastFmData(username) {
       (!isNaN(tracksScrobbles) && tracksScrobbles > 0) ? tracksScrobbles :
       mockTotalScrobbles
 
-    // Recently played — skip image fetching (no section renders it); keep track count for data completeness
     let recentlyPlayed = []
     if (recentData?.length) {
       recentlyPlayed = recentData.slice(0, 12).map(t => ({ text: t.name }))
@@ -572,10 +543,8 @@ export default function useLastFmData(username) {
       recentlyPlayed = normalizeTopTracks(tracksData)
     }
 
-    // Top albums — filtered to only those with valid images (no empty spots)
     const topAlbums = normalizeTopAlbums(albumsData) || []
 
-    // Listening patterns from recenttracks timestamps
     let listeningByHour = [...mockListeningByHour]
     let listeningByWeekday = [...mockListeningByWeekday]
     if (recentData?.length) {
@@ -584,11 +553,9 @@ export default function useLastFmData(username) {
       listeningByWeekday = dayCounts
     }
 
-    // Top artists — limited to 5 max for the component's layout
     const rawArtists = normalizeTopArtists(artistsData) || []
     const topArtistsCapped = rawArtists.slice(0, 5)
 
-    // Build gallery data for the top-artists carousel with high-quality images (Wikipedia -> Last.fm -> Wikidata)
     let topArtistsGallery = []
     if (topArtistsCapped.length) {
       const promises = topArtistsCapped.map(a => ({
@@ -619,12 +586,11 @@ export default function useLastFmData(username) {
       secondArtist = { name: topArtistsCapped[1].name, plays: topArtistsCapped[1].plays }
     }
 
-    // Most played track — use Last.fm album art first, fall back through multiple sources
     let mostPlayedTrack = { ...mockMostPlayedTrack }
+
     if (tracksData?.tracks?.[0]) {
       const t = tracksData.tracks[0]
 
-      // Try Last.fm's own album data first (for the specific track)
       const artFromLfm = pickImg(t.album?.image)
       let cover = artFromLfm
       let infoTitle = t.album?.title ?? ''
@@ -637,11 +603,9 @@ export default function useLastFmData(username) {
           if (info?.image) cover = info.image
           if (info?.title) infoTitle = info.title
         } catch {
-          // will use gradient below
         }
       }
 
-      // Final fallback: unique gradient placeholder keyed to track name
       if (!cover) {
         cover = makePlaceholder(t.name)
       }
@@ -655,7 +619,6 @@ export default function useLastFmData(username) {
       }
     }
 
-    // Weekly genre analysis from top tracks' artists' tags
     let weeklyGenre = mockWeeklyGenre
     if (tracksData?.tracks?.length) {
       const uniqueArtists = [...new Set(tracksData.tracks.map(t => t.artist?.name).filter(Boolean))]
@@ -678,13 +641,12 @@ export default function useLastFmData(username) {
       mostPlayedTrack,
     })
 
-    // Check if any critical fetch failed
     if (!infoData && !tracksData && !recentTracks) {
       setError("Couldn't fetch your stats. Please check that your Last.fm username is correct and try again.")
     }
 
     setLoading(false)
-  }, [hasApiKey])
+  }, [hasApiKey]); // hasApiKey is compile-time constant; kept for eslint exhaustive-deps compliance
 
   useEffect(() => {
     if (username) fetchData(username)

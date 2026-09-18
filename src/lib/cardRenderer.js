@@ -1,9 +1,4 @@
-/**
- * Card renderer — draws a ScrobbDash card on an HTMLCanvasElement.
- * Returns the canvas ready for download as PNG.
- */
 
-/* ── helpers ─────────────────────────────────────── */
 
 function lerp(a, b, t) { return a + (b - a) * t }
 
@@ -21,7 +16,6 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-/* ── image loader ────────────────────────────────── */
 
 function loadImage(src, size = 60) {
   return new Promise((resolve) => {
@@ -31,7 +25,6 @@ function loadImage(src, size = 60) {
     img.onload = () => resolve(img)
     img.onerror = () => resolve(null)
     img.src = src
-    // timeout fallback
     setTimeout(() => resolve(null), 5000)
   })
 }
@@ -42,7 +35,6 @@ function drawCircleImage(ctx, img, cx, cy, r) {
   ctx.arc(cx, cy, r, 0, Math.PI * 2)
   ctx.closePath()
   ctx.clip()
-  // fit image into square then center in circle
   const s = img.naturalWidth / img.naturalHeight
   let sw = r, sh = r
   if (s > 1) { sw = r * s; sh = r } else { sw = r; sh = r / s }
@@ -50,7 +42,7 @@ function drawCircleImage(ctx, img, cx, cy, r) {
   ctx.restore()
 }
 
-/* ── theme definitions ───────────────────────────── */
+}
 
 const THEMES = {
   crimson:   { top: '#780000', bot: '#1a0000', accent: '#ff2d55' },
@@ -62,7 +54,6 @@ const THEMES = {
   twilight:  { top: '#be185d', bot: '#3b0726', accent: '#f472b6' },
 }
 
-/* ── font loader (browser) ───────────────────────── */
 
 const FONT_FAMILY = "'Inter','SF Pro Display','Segoe UI',system-ui,sans-serif"
 
@@ -71,8 +62,6 @@ function loadFonts() {
   return Promise.resolve()
 }
 
-/* ── draw helpers ────────────────────────────────── */
-
 function drawBg(ctx, w, h, theme) {
   const g = ctx.createLinearGradient(0, 0, 0, h)
   g.addColorStop(0, theme.top)
@@ -80,7 +69,6 @@ function drawBg(ctx, w, h, theme) {
   ctx.fillStyle = g
   ctx.fillRect(0, 0, w, h)
 
-  // subtle noise overlay
   ctx.globalAlpha = 0.03
   for (let i = 0; i < 300; i++) {
     ctx.fillStyle = Math.random() > 0.5 ? '#fff' : '#000'
@@ -102,13 +90,11 @@ function drawSectionDivider(ctx, x, y, w) {
 }
 
 function drawStatTile(ctx, x, y, w, h, label, value, theme) {
-  // tile background
   ctx.save()
   ctx.fillStyle = 'rgba(0,0,0,0.25)'
   roundRect(ctx, x, y, w, h, 16)
   ctx.fill()
 
-  // top accent line
   const lg = ctx.createLinearGradient(x, y, x + w, y)
   lg.addColorStop(0, 'transparent')
   lg.addColorStop(0.5, theme.accent)
@@ -117,13 +103,9 @@ function drawStatTile(ctx, x, y, w, h, label, value, theme) {
   roundRect(ctx, x, y, w, h, 16)
   ctx.fill()
 
-  // label
-  ctx.fillStyle = 'rgba(255,255,255,0.45)'
-  ctx.font = `500 18px ${FONT_FAMILY}`
   ctx.textAlign = 'center'
   ctx.fillText(label.toUpperCase(), x + w / 2, y + 26)
 
-  // value
   ctx.fillStyle = '#fff'
   ctx.font = `700 38px ${FONT_FAMILY}`
   ctx.fillText(value, x + w / 2, y + 72)
@@ -135,18 +117,15 @@ function drawBarChart(ctx, items, x, baseY, w, barH, gap, theme) {
   let cy = baseY
   items.forEach((item, i) => {
     const pct = item.value / maxVal
-    // label
     ctx.fillStyle = 'rgba(255,255,255,0.7)'
     ctx.font = `400 16px ${FONT_FAMILY}`
     ctx.textAlign = 'left'
     ctx.fillText(item.label, x, cy + barH / 2 + 5)
 
-    // bg bar
     ctx.fillStyle = 'rgba(255,255,255,0.08)'
     roundRect(ctx, x + 140, cy, w - 160, barH, 6)
     ctx.fill()
 
-    // filled bar
     const fg = ctx.createLinearGradient(x + 140, cy, x + 140 + (w - 160) * pct, cy)
     fg.addColorStop(0, theme.accent)
     fg.addColorStop(1, lerpColor(theme.accent, '#ffffff', 0.3))
@@ -154,7 +133,6 @@ function drawBarChart(ctx, items, x, baseY, w, barH, gap, theme) {
     roundRect(ctx, x + 140, cy, (w - 160) * pct, barH, 6)
     ctx.fill()
 
-    // count
     const countText = ` ${item.value}`
     ctx.fillStyle = 'rgba(255,255,255,0.7)'
     ctx.font = `600 14px ${FONT_FAMILY}`
@@ -178,8 +156,6 @@ function lerpColor(hex, to, t) {
   return `rgb(${r},${g},${b})`
 }
 
-/* ── main render function ────────────────────────── */
-
 export async function renderCard(canvas, opts) {
   const { theme = 'crimson', periodLabel = 'all time' } = opts
   const W = 1080
@@ -191,17 +167,14 @@ export async function renderCard(canvas, opts) {
   const themeObj = THEMES[theme] || THEMES.crimson
   const { user, topArtists, topTracks, topAlbums, weeklyGenre, dominantArtist, totalScrobbles, listeningByHour, listeningByWeekday } = opts
 
-  // ── load images ────────────────────────────────
   const [avatarImg] = await Promise.all([
     user?.image ? loadImage(user.image, 80) : Promise.resolve(null),
   ])
 
-  // ── draw bg ────────────────────────────────────
   drawBg(ctx, W, H, themeObj)
 
   let cy = 0
 
-  // ── period badge ───────────────────────────────
   ctx.save()
   ctx.fillStyle = 'rgba(255,255,255,0.12)'
   roundRect(ctx, W / 2 - 80, cy + 36, 160, 32, 16)
@@ -213,12 +186,10 @@ export async function renderCard(canvas, opts) {
   ctx.restore()
   cy += 86
 
-  // ── user profile section ───────────────────────
   const avatarSize = 100
   if (avatarImg) {
     drawCircleImage(ctx, avatarImg, W / 2, cy + avatarSize / 2, avatarSize / 2)
   } else {
-    // fallback avatar
     ctx.save()
     ctx.beginPath()
     ctx.arc(W / 2, cy + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
@@ -232,7 +203,6 @@ export async function renderCard(canvas, opts) {
     ctx.restore()
   }
 
-  // username
   ctx.fillStyle = '#fff'
   ctx.font = `700 36px ${FONT_FAMILY}`
   ctx.textAlign = 'center'
@@ -244,7 +214,8 @@ export async function renderCard(canvas, opts) {
 
   cy += avatarSize + 120
 
-  // ── scrobbles stat tile ────────────────────────
+  cy += avatarSize + 120
+
   const tileW = (W - 140) / 2
   const tileH = 120
   drawStatTile(ctx, 70, cy, tileW, tileH, 'Scrobbles', formatNum(totalScrobbles || 0), themeObj)
@@ -253,7 +224,8 @@ export async function renderCard(canvas, opts) {
   }
   cy += tileH + 40
 
-  // ── top 5 artists ──────────────────────────────
+  cy += tileH + 40
+
   ctx.fillStyle = 'rgba(255,255,255,0.35)'
   ctx.font = `600 16px ${FONT_FAMILY}`
   ctx.textAlign = 'left'
@@ -262,40 +234,36 @@ export async function renderCard(canvas, opts) {
   cy += 50
   const artistImgSize = 48
   topArtists?.slice(0, 5).forEach((artist, i) => {
-    // rank number
     ctx.fillStyle = 'rgba(255,255,255,0.15)'
     ctx.font = `700 24px ${FONT_FAMILY}`
     ctx.textAlign = 'right'
     ctx.fillText(`#${i + 1}`, 110, cy + 22)
 
-    // artist image or placeholder
     if (artist.image) {
       const img = loadImage(artist.image, artistImgSize).then(img => {
         if (img) drawCircleImage(ctx, img, 74 + artistImgSize / 2, cy + artistImgSize / 2, artistImgSize / 2)
       })
     } else {
-      // placeholder circle
       ctx.beginPath()
       ctx.arc(74 + artistImgSize / 2, cy + artistImgSize / 2, artistImgSize / 2, 0, Math.PI * 2)
       ctx.fillStyle = 'rgba(255,255,255,0.08)'
       ctx.fill()
     }
 
-    // name
     ctx.fillStyle = '#fff'
     ctx.font = `600 24px ${FONT_FAMILY}`
     ctx.textAlign = 'left'
     const displayName = artist.name.length > 28 ? artist.name.slice(0, 25) + '...' : artist.name
     ctx.fillText(displayName, 130, cy + 26)
 
-    // plays
+    ctx.fillText(displayName, 130, cy + 26)
+
     if (artist.plays) {
       ctx.fillStyle = `rgba(255,255,255,${lerp(0.6, 0.25, i / 4)})`
       ctx.font = `400 16px ${FONT_FAMILY}`
       ctx.fillText(`${formatNum(artist.plays)} scrobbles`, 130, cy + 48)
     }
 
-    // rank accent dot
     const dg = ctx.createLinearGradient(50, cy + 16, 50, cy + 56)
     dg.addColorStop(0, i === 0 ? themeObj.accent : 'transparent')
     dg.addColorStop(1, 'transparent')
@@ -306,7 +274,6 @@ export async function renderCard(canvas, opts) {
     cy += 72
   })
 
-  // ── top 5 tracks ───────────────────────────────
   cy += 30
   drawSectionDivider(ctx, 70, cy, W - 140)
   cy += 36
@@ -319,13 +286,11 @@ export async function renderCard(canvas, opts) {
   cy += 50
   topTracks?.slice(0, 5).forEach((track, i) => {
     const trackImgSize = 48
-    // tiny rank dot
     ctx.beginPath()
     ctx.arc(60, cy + 16, 3 + (i === 0 ? 3 : 0), 0, Math.PI * 2)
     ctx.fillStyle = i === 0 ? themeObj.accent : 'rgba(255,255,255,0.15)'
     ctx.fill()
 
-    // album art placeholder
     if (track.cover) {
       const img = loadImage(track.cover, trackImgSize).then(img => {
         if (img) {
@@ -342,14 +307,12 @@ export async function renderCard(canvas, opts) {
       })
     }
 
-    // title
     ctx.fillStyle = '#fff'
     ctx.font = `600 22px ${FONT_FAMILY}`
     ctx.textAlign = 'left'
     const displayName = track.name.length > 35 ? track.name.slice(0, 32) + '...' : track.name
     ctx.fillText(displayName, 130, cy + 24)
 
-    // artist
     ctx.fillStyle = `rgba(255,255,255,${lerp(0.6, 0.25, i / 4)})`
     ctx.font = `400 16px ${FONT_FAMILY}`
     ctx.fillText(track.artist || 'Unknown Artist', 130, cy + 48)
@@ -357,7 +320,6 @@ export async function renderCard(canvas, opts) {
     cy += 72
   })
 
-  // ── top 5 albums ───────────────────────────────
   cy += 30
   drawSectionDivider(ctx, 70, cy, W - 140)
   cy += 36
@@ -369,7 +331,6 @@ export async function renderCard(canvas, opts) {
 
   cy += 50
   topAlbums?.slice(0, 5).forEach((album, i) => {
-    // album art placeholder
     const albumArtSize = 48
     if (album.cover || album.image) {
       const imgSrc = album.cover || album.image
@@ -387,7 +348,6 @@ export async function renderCard(canvas, opts) {
         }
       })
     } else {
-      // gradient placeholder
       const grad = ctx.createLinearGradient(72, cy + 4, 120, cy + 52)
       grad.addColorStop(0, themeObj.top)
       grad.addColorStop(1, themeObj.bot)
@@ -396,14 +356,12 @@ export async function renderCard(canvas, opts) {
       ctx.fill()
     }
 
-    // title
     ctx.fillStyle = '#fff'
     ctx.font = `600 22px ${FONT_FAMILY}`
     ctx.textAlign = 'left'
     const displayName = album.title.length > 35 ? album.title.slice(0, 32) + '...' : album.title
     ctx.fillText(displayName, 130, cy + 24)
 
-    // artist
     ctx.fillStyle = `rgba(255,255,255,${lerp(0.6, 0.25, i / 4)})`
     ctx.font = `400 16px ${FONT_FAMILY}`
     const albumArtistName = album.artist ? `${album.artist} — ${album.title}` : album.title
@@ -412,7 +370,6 @@ export async function renderCard(canvas, opts) {
     cy += 72
   })
 
-  // ── genre section ──────────────────────────────
   if (weeklyGenre) {
     cy += 40
     drawSectionDivider(ctx, 70, cy, W - 140)
@@ -423,7 +380,6 @@ export async function renderCard(canvas, opts) {
     ctx.textAlign = 'left'
     ctx.fillText('YOUR DOMINANT GENRE', 70, cy + 28)
 
-    // big genre pill
     cy += 44
     const genreText = weeklyGenre
     const genreTextW = ctx.measureText(genreText).width + 60
@@ -438,7 +394,6 @@ export async function renderCard(canvas, opts) {
     cy += 86
   }
 
-  // ── listening patterns bar chart ───────────────
   if (listeningByWeekday?.length) {
     drawSectionDivider(ctx, 70, cy, W - 140)
     cy += 36
@@ -457,7 +412,6 @@ export async function renderCard(canvas, opts) {
     cy += 176
   }
 
-  // ── footer ─────────────────────────────────────
   drawSectionDivider(ctx, 70, cy, W - 140)
   cy += 40
 
@@ -466,7 +420,6 @@ export async function renderCard(canvas, opts) {
   ctx.textAlign = 'center'
   ctx.fillText('generated by ScrobbDash', W / 2, cy + 28)
 
-  // accent line at bottom
   const fg = ctx.createLinearGradient(W / 2 - 100, cy + 40, W / 2 + 100, cy + 40)
   fg.addColorStop(0, 'transparent')
   fg.addColorStop(0.5, themeObj.accent)

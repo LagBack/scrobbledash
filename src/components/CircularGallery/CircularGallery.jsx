@@ -25,8 +25,6 @@ function autoBind(instance) {
 }
 
 const DEFAULT_FONT = 'bold 30px Figtree';
-// Figtree is not guaranteed to be available on the host page, so the component
-// loads it on demand whenever the default font is used.
 const DEFAULT_FONT_URL = 'https://fonts.googleapis.com/css2?family=Figtree:wght@400;700&display=swap';
 
 function deriveFontFamilyFromUrl(url) {
@@ -79,23 +77,14 @@ async function loadCustomFont(fontUrl) {
   return isStylesheet ? loadFontFromStylesheet(fontUrl) : loadFontFromFile(fontUrl);
 }
 
-// Loads `fontUrl` (a stylesheet such as a Google Fonts URL, or a direct font
-// file) and returns a canvas-ready font string that keeps the size/weight from
-// `font` but swaps in the freshly loaded family. Falls back to `font` on error.
 async function resolveFont(font, fontUrl) {
-  // Use the bundled Figtree stylesheet when the caller relies on the default
-  // font, otherwise honor the explicit `fontUrl`.
   const effectiveUrl = fontUrl || (font === DEFAULT_FONT ? DEFAULT_FONT_URL : null);
   if (!effectiveUrl) {
-    // A custom family was supplied without a URL – make sure it is ready (in
-    // case the host page declares it) before we draw it to the canvas,
-    // otherwise the first paint silently falls back to a system font.
     if (document.fonts && document.fonts.load) {
       try {
         await document.fonts.load(font);
         await document.fonts.ready;
       } catch {
-        // Ignore – fall back to whatever the browser provides.
       }
     }
     return font;
@@ -109,7 +98,6 @@ async function resolveFont(font, fontUrl) {
       try {
         await document.fonts.load(resolved);
       } catch {
-        // Ignore – we still attempt to render with the requested font.
       }
     }
     return resolved;
@@ -279,7 +267,6 @@ class Media {
 
           float d = roundedBoxSDF(vUv - 0.5, vec2(0.5 - uBorderRadius), uBorderRadius);
 
-          // Smooth antialiasing for edges
           float edgeSmooth = 0.002;
           float alpha = 1.0 - smoothstep(-edgeSmooth, edgeSmooth, d);
 
@@ -307,11 +294,8 @@ class Media {
       this.program.uniforms.uImageSizes.value = [img.naturalWidth, img.naturalHeight];
     };
     img.onerror = () => {
-      if (settled) return; // direct src already loaded successfully
+      if (settled) return;
 
-      // If direct Image load fails (CORS), try fetching as blob and converting to data URL.
-      // WebGL textures require the source element to be non-tainted; cross-origin images
-      // from Apple CDN may silently fail in some browsers, so fetch+blob is a fallback.
       fetch(this.image, { mode: 'cors' })
         .then(r => r.blob())
         .then(blob => {
@@ -646,7 +630,6 @@ export default function CircularGallery({
       });
     });
 
-    // Pause rAF when component goes off-screen (saves GPU)
     let isPageVisible = !document.hidden;
     const ioObs = new IntersectionObserver(
       ([entry]) => { pausedRef.current = !entry.isIntersecting; },
@@ -657,7 +640,6 @@ export default function CircularGallery({
     const onVisibility = () => { isPageVisible = !document.hidden; };
     document.addEventListener('visibilitychange', onVisibility);
 
-    // Integrate with App's rAF: modify its loop to respect paused state
     if (app) {
       const origUpdate = app.update.bind(app);
       app.update = function () {

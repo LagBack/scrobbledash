@@ -421,7 +421,6 @@ export default function FloatingLines({
     let isVisible = true;
     let isPageVisible = !document.hidden;
 
-    // rAF loop — pauses when off-screen or tab hidden (no scene destruction)
     const renderLoop = () => {
       if (!active) return;
       uniforms.iTime.value = clock.getElapsedTime();

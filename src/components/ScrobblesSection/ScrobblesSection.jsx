@@ -3,7 +3,6 @@ import MagicRings from '../MagicRings/MagicRings';
 import BlurText from '../BlurText/BlurText';
 import Counter from '../Counter/Counter';
 
-// Choreography uses refs internally so children never re-mount.
 export default function ScrobblesSection({ scrobbles }) {
   const containerRef = useRef(null);
   const [choreoPhase, setChoreoPhase] = useState(0);
@@ -20,13 +19,11 @@ export default function ScrobblesSection({ scrobbles }) {
         if (entry.isIntersecting) {
           setChoreoPhase(1);
 
-          // Phase 2 (~1800ms): label blurs out, counter fades in and counts up
           setTimeout(() => {
             setChoreoPhase(2);
             setCounting(true);
           }, 1600);
 
-          // Phase 3 (~3800ms): both re-animate on top
           setTimeout(() => setChoreoPhase(3), 3800);
         }
       },
@@ -37,11 +34,6 @@ export default function ScrobblesSection({ scrobbles }) {
     return () => obs.disconnect();
   }, [choreoPhase]);
 
-  // Phase-driven opacity overrides for the choreography sequence:
-  //   phase 0: label hidden, counter hidden          (pre-trigger)
-  //   phase 1: label fades in                          (label only)
-  //   phase 2: label hidden again, counter fades in + starts counting (counter only)
-  //   phase 3: both fade to full opacity               (both visible)
   const labelStyle = choreoPhase === 0 ? { opacity: 0 } :
                      choreoPhase === 1 ? { opacity: 1, transition: 'opacity 0.5s ease' } :
                      choreoPhase === 2 ? { opacity: 0 } :
@@ -50,8 +42,6 @@ export default function ScrobblesSection({ scrobbles }) {
   const counterStyle = choreoPhase <= 1 ? { opacity: 0 } :
                                { opacity: 1, transition: 'opacity 0.5s ease' };
 
-  // Build digit positions dynamically from scrobbles length — no leading zeros.
-  // e.g. scrobbles=90000 → [10000, 1000, 100, 10, 1] (5 places)
   const places = useMemo(() => {
     const digits = String(scrobbles).length;
     return Array.from({ length: digits }, (_, i) => Math.pow(10, digits - 1 - i));

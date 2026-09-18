@@ -1,4 +1,4 @@
-/* ===== Wrapper ===== */
+
 .floating-lines-wrapper {
   width: 100%;
   position: relative;
@@ -44,7 +44,6 @@
   height: 100%;
 }
 
-/* ===== Dim overlay — pulls brightness in line with the rest of the page ===== */
 .floating-lines__dim {
   position: absolute;
   inset: 0;
@@ -62,7 +61,6 @@
   pointer-events: none;
 }
 
-/* ===== Content overlay (sits above the canvas) ===== */
 .floating-lines__content {
   position: relative;
   z-index: 5;
@@ -71,7 +69,6 @@
   margin: 0 auto;
 }
 
-/* ===== Top fade — blends scanner section above into the canvas ===== */
 .floating-lines__fade-top {
   position: absolute;
   top: 0;
@@ -89,7 +86,6 @@
   z-index: 4;
 }
 
-/* ===== Bottom fade — blends canvas into gradient-waves section below ===== */
 .floating-lines__fade-bottom {
   position: absolute;
   left: 0;
@@ -110,7 +106,6 @@
   z-index: 4;
 }
 
-/* ===== Top Artists ===== */
 .floating-lines__content .artists-section {
   width: 100%;
   padding: 48px 24px 0;
@@ -129,7 +124,6 @@
   text-align: center;
 }
 
-/* ===== Fun Stats — glass cards over the animated lines ===== */
 .floating-lines__content .fun-stats {
   padding: 56px 24px 80px;
 }
@@ -141,7 +135,7 @@
   border-color: rgba(255, 255, 255, 0.06);
 }
 
-/* ===== Responsive ===== */
+
 @media (max-width: 860px) {
   .floating-lines__content .fun-stats__grid {
     grid-template-columns: 1fr;

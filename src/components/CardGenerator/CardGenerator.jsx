@@ -30,7 +30,6 @@ export default function CardGenerator({ isOpen, onClose, user, topArtists, topTr
     setGenerating(true)
     setGeneratedUrl(null)
 
-    // Wait for fonts to be ready
     if (document.fonts?.ready) await document.fonts.ready
 
     const canvas = canvasRef.current || document.createElement('canvas')
@@ -62,7 +61,6 @@ export default function CardGenerator({ isOpen, onClose, user, topArtists, topTr
     document.body.removeChild(a)
   }, [generatedUrl, selectedPeriod])
 
-  // When modal opens, reset state
   const prevIsOpenRef = useRef(isOpen)
   if (prevIsOpenRef.current !== isOpen) {
     prevIsOpenRef.current = isOpen
@@ -74,7 +72,6 @@ export default function CardGenerator({ isOpen, onClose, user, topArtists, topTr
   return (
     <div className="card-gen__overlay" onClick={onClose}>
       <div className="card-gen__panel" onClick={e => e.stopPropagation()}>
-        {/* close */}
         <button className="card-gen__close" onClick={onClose} aria-label="Close">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
@@ -82,7 +79,6 @@ export default function CardGenerator({ isOpen, onClose, user, topArtists, topTr
         <h2 className="card-gen__title">Generate Your ScrobbDash Card</h2>
         <p className="card-gen__subtitle">Choose your stats period and card theme</p>
 
-        {/* period picker */}
         <fieldset className="card-gen__field">
           <legend className="card-gen__legend">Time Period</legend>
           <div className="card-gen__periods">
@@ -99,7 +95,6 @@ export default function CardGenerator({ isOpen, onClose, user, topArtists, topTr
           </div>
         </fieldset>
 
-        {/* theme picker */}
         <fieldset className="card-gen__field">
           <legend className="card-gen__legend">Card Theme</legend>
           <div className="card-gen__themes">
@@ -117,7 +112,6 @@ export default function CardGenerator({ isOpen, onClose, user, topArtists, topTr
           </div>
         </fieldset>
 
-        {/* generate button */}
         <button
           className="card-gen__generate"
           onClick={handleGenerate}

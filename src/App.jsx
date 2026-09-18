@@ -32,7 +32,6 @@ function Dashboard() {
 
   const { data, loading, error } = useLastFmData(username)
 
-  // ── Derived values (fallback to mock for missing fields) ──
   const d = data || {}
   const user = d.user || { name: username }
   const topAlbums = d.topAlbums ?? mockTopAlbums
@@ -40,7 +39,6 @@ function Dashboard() {
   const weeklyGenre = d.weeklyGenre || ''
   const listeningByHour = d.listeningByHour || []
   const listeningByWeekday = d.listeningByWeekday || []
-  const topArtists = d.topArtists || []
   const topArtistsGallery = d.topArtistsGallery || []
   const dominantArtist = d.dominantArtist || {}
   const secondArtist = d.secondArtist || {}
@@ -49,7 +47,6 @@ function Dashboard() {
     ? (dominantArtist.plays / secondArtist.plays).toFixed(1)
     : '0'
 
-  // ── Memoized derived data — prevents CircularGallery scene recreation & DriftWall recalc on every render ──
   const topArtistsGalleryItems = useMemo(
     () => topArtistsGallery.map(a => ({ image: a.image, text: `${a.name}` })),
     [topArtistsGallery],
@@ -60,7 +57,6 @@ function Dashboard() {
     [topAlbums],
   )
 
-  // Stable empty arrays — avoid allocating fresh arrays every render
   const EMPTY_HOURS = useMemo(() => new Array(24).fill(0), [])
   const EMPTY_DAYS = useMemo(() => new Array(7).fill(0), [])
 
@@ -88,7 +84,6 @@ function Dashboard() {
     )
   }
 
-  // ── No data and no loading → just show the home-style input screen ──
   if (!data) {
     return (
       <div className="app">
@@ -114,11 +109,9 @@ function Dashboard() {
 
   return (
     <div className="app">
-      {/* Retro grid background */}
       <RetroGrid />
       <div className="app__page-dark" />
 
-      {/* Header */}
       <header className="app__header">
         <div className="app__logo">
           <button onClick={() => navigate('/')} style={backBtn} aria-label="Back to home">
@@ -134,9 +127,7 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="app__main">
-        {/* Welcome heading */}
         <section className="app__welcome">
           <h1 className="app__welcome-text">
             welcome,
@@ -157,7 +148,6 @@ function Dashboard() {
           <p className="app__subtitle">Here's what you've been listening to</p>
         </section>
 
-        {/* Top artists carousel */}
         <section className="app__gallery-wrapper">
           <CircularGallery
             items={topArtistsGalleryItems}
@@ -169,7 +159,6 @@ function Dashboard() {
           />
         </section>
 
-        {/* DriftWall — top album covers */}
         <section className="app__driftwall">
           <h2 className="app__driftwall-title">Top Albums</h2>
           <div className="app__driftwall-container">
@@ -191,12 +180,10 @@ function Dashboard() {
               fade={0.7}
               dim={0.5}
               overlayColor="#0a0a0a"
-            // style={{}}  ← removed: empty object literal creates new ref every render, breaks cssVars useMemo
             />
           </div>
         </section>
 
-        {/* MagicRings → scrobbles choreography */}
         <ScrobblesSection scrobbles={totalScrobbles || 0} />
       </main>
 
@@ -253,7 +240,6 @@ function Dashboard() {
         </div>
       </section>
       
-      {/* Fun stats + floating lines background */}
       <FloatingLinesBackground
         dominantArtist={dominantArtist}
         secondArtist={secondArtist}

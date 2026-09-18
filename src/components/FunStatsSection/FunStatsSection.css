@@ -44,7 +44,7 @@
   letter-spacing: 3px;
 }
 
-/* ===== Dominant Artist Card ===== */
+
 .fun-stats__card--dominant {
   justify-content: flex-start;
   gap: 16px;
@@ -99,7 +99,7 @@
   max-width: 340px;
 }
 
-/* Comparison */
+
 .fun-stats__comparison {
   display: flex;
   flex-direction: column;
@@ -118,7 +118,7 @@
   margin: 0;
 }
 
-/* ===== Most Played Track Card ===== */
+
 .fun-stats__card--track {
   justify-content: flex-start;
   gap: 14px;
@@ -176,7 +176,7 @@
   letter-spacing: 0.3px;
 }
 
-/* ===== Responsive ===== */
+
 @media (max-width: 860px) {
   .fun-stats__grid {
     grid-template-columns: 1fr;
