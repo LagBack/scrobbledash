@@ -17,8 +17,6 @@ import TimeClock from './components/TimeClock/TimeClock'
 import './components/TimeClock/TimeClock.css'
 import WeekdayChart from './components/WeekdayChart/WeekdayChart'
 import './components/WeekdayChart/WeekdayChart.css'
-import GradientWaves from './components/GradientWaves/GradientWaves'
-import './components/GradientWaves/GradientWaves.css'
 import PageFooter from './components/PageFooter/PageFooter'
 import { topAlbums as mockTopAlbums } from './data/mockData'
 import FloatingLinesBackground from './components/FloatingLines/FloatingLinesBackground'
@@ -248,33 +246,8 @@ function Dashboard() {
       />
 
 
-      <section className="gradient-waves-section">
-        <div className="gradient-waves-section__bg">
-          <GradientWaves
-            horizonColor="#5c0101"
-            waveColor="#000000"
-            crestColor="#a73e3e"
-            speed={0.4}
-            amplitude={2.5}
-            waveScale={0.6}
-            waveRatio={0.9}
-            swell={35}
-            turbulence={20}
-            tilt={1.11}
-            zoom={1.0}
-            height={5.5}
-            fogDepth={15}
-            detail="medium"
-            brightness={1.0}
-            opacity={1.0}
-            mouseInteraction={false}
-            parallaxStrength={0.5}
-            grain={true}
-            grainIntensity={0.05}
-          />
-        </div>
-        <div className="gradient-waves-section__fade" />
-        <div className="gradient-waves-section__content">
+      <section className="app__footer">
+        <div className="app__footer-content">
           <PageFooter />
         </div>
       </section>
